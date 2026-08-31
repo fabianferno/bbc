@@ -1,4 +1,4 @@
-"""FastAPI sidecar for the openmind frontend.
+"""FastAPI sidecar for the BBC newsroom frontend.
 
 Wraps the existing agent engine: streams a live analyze pipeline over SSE and serves
 history (markets, decisions, graphs, traces, on-chain anchors, portfolio, metrics) from
@@ -21,12 +21,12 @@ from agent.api import seeds
 from agent.api.analyze import run_analysis
 from agent.config import settings
 from agent.logging import get_logger
-from agent.onchain import get_arc
+from agent.onchain import explorer_tx_url, get_solana, network_name
 from agent.store import db
 
 log = get_logger(__name__)
 
-app = FastAPI(title="openmind API", version="0.1.0")
+app = FastAPI(title="BBC API", version="0.1.0")
 
 # Public read-mostly API consumed by a static frontend (no cookies) → allow any origin.
 # This lets the deployed Vercel app (and judges) reach the agent over SSE + REST.
@@ -47,7 +47,7 @@ _ANIM_DELAY = {"entity_extracted": 0.09, "relation_extracted": 0.06}
 @app.get("/")
 def root() -> dict[str, Any]:
     """Service banner / quick liveness check."""
-    return {"service": "openmind API", "status": "ok", "docs": "/docs"}
+    return {"service": "BBC API", "status": "ok", "docs": "/docs"}
 
 
 @app.get("/health")
@@ -59,18 +59,27 @@ def healthz() -> dict[str, Any]:
 
 @app.get("/api/health")
 def health() -> dict[str, Any]:
-    arc = get_arc()
+    sol = get_solana()
+    chain = {
+        "network": network_name(),
+        "cluster": settings.solana_cluster,
+        "real": sol.real,
+        "rpc_url": settings.solana_rpc_url,
+        "rpc_ok": sol.rpc_ok(),
+        "address": sol.address,
+        "sol_balance": sol.sol_balance(),
+        "usdc_balance": sol.usdc_balance(),
+        "mint": sol.mint,
+        "bbc_mint_configured": bool(settings.bbc_mint_address),
+        "explorer": settings.solana_explorer_base,
+    }
     return {
         "ok": True,
         "mode": settings.agent_mode,
         "model": settings.bedrock_model_id,
-        "arc": {
-            "real": arc.real,
-            "chain_id": settings.arc_chain_id,
-            "address": arc.address,
-            "usdc_balance": arc.usdc_balance(),
-            "explorer": settings.arc_explorer_base,
-        },
+        "chain": chain,
+        # deprecated alias for the frontend's HealthResp.arc — remove after one release
+        "arc": chain,
     }
 
 
@@ -286,7 +295,7 @@ def portfolio(wallet: str | None = None) -> dict[str, Any]:
 
 @app.get("/api/metrics")
 def metrics() -> dict[str, Any]:
-    arc = get_arc()
+    sol = get_solana()
     with db.connect() as conn:
         ms = db.latest_metrics(conn)
         cost_today = db.llm_cost_today(conn)
@@ -297,7 +306,7 @@ def metrics() -> dict[str, Any]:
         "anchor_count": sum(1 for a in anchors if a["kind"] == "anchor"),
         "settle_count": sum(1 for a in anchors if a["kind"] == "settle"),
         "real_tx_count": sum(1 for a in anchors if not a["mocked"]),
-        "usdc_balance": arc.usdc_balance(),
+        "usdc_balance": sol.usdc_balance(),
         "model": settings.bedrock_model_id,
     }
 
@@ -322,16 +331,16 @@ class AnchorRecordIn(BaseModel):
 
 @app.post("/api/anchors/record")
 def record_anchor_tx(body: AnchorRecordIn) -> dict[str, Any]:
-    """Record a client-signed (personal-mode) Arc txn so it shows in the ledger.
+    """Record a client-signed (personal-mode) Solana txn so it shows in the ledger.
 
-    Hackathon trust model: the reported hash is stored as-is, not re-verified on
-    Arc. For production, verify the tx exists, matches the trace hash / amount, and
-    was sent from the authenticated user's address before recording.
+    Hackathon trust model: the reported signature is stored as-is, not re-verified on
+    chain. For production, fetch the tx, check it matches the trace hash / amount, and
+    that it was sent from the authenticated user's pubkey before recording.
     """
     if body.kind not in ("anchor", "settle"):
         raise HTTPException(400, "kind must be 'anchor' or 'settle'")
-    h = body.tx_hash if body.tx_hash.startswith("0x") else "0x" + body.tx_hash
-    explorer_url = f"{settings.arc_explorer_base}/tx/{h}"
+    h = body.tx_hash  # base58 Solana signature
+    explorer_url = explorer_tx_url(h)
     with db.connect() as conn:
         db.record_anchor(conn, {
             "decision_id": body.decision_id, "market_id": body.market_id, "kind": body.kind,
@@ -342,5 +351,5 @@ def record_anchor_tx(body: AnchorRecordIn) -> dict[str, Any]:
         })
     return {
         "tx_hash": h, "explorer_url": explorer_url, "mocked": False, "kind": body.kind,
-        "network": "arc-testnet", "trace_hash": body.trace_hash, "usdc_amount": body.usdc_amount,
+        "network": network_name(), "trace_hash": body.trace_hash, "usdc_amount": body.usdc_amount,
     }

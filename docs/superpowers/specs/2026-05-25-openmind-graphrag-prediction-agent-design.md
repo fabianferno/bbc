@@ -1,5 +1,12 @@
 # openmind — Design Spec
 
+> **Historical document.** Written before the project was renamed to **BBC — the Bull
+> Broadcasting Corporation** ($BBC on Solana, built for The AnsemHack). Names like
+> `openclob` / `openmind` and references to the Arc/EVM chain layer are preserved here as
+> a record of the decisions taken at the time. For current truth see `PRODUCT.md`,
+> `README.md` and `CLAUDE.md`.
+
+
 **Working title:** `openmind` — *the prediction-market agent that shows its work, and proves it on-chain.*
 **Date:** 2026-05-25
 **Status:** Approved direction, pre-implementation

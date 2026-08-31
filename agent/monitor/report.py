@@ -32,7 +32,7 @@ def print_report(console: Console | None = None) -> None:
     c = console or Console()
     r = build_report()
 
-    c.rule("[bold]openclob daily report")
+    c.rule("[bold]BBC newsroom — daily report")
 
     m = r["metrics"]
     gate = m["gate"]

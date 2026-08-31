@@ -1,106 +1,153 @@
 "use client";
 
-import { useSendTransaction } from "@privy-io/react-auth";
+// Explicit `buffer` import: Turbopack does not polyfill a global Buffer in
+// client bundles, and @solana/web3.js types instruction data as Buffer.
+import { Buffer } from "buffer";
 import { useCallback } from "react";
-import { encodeFunctionData, parseUnits, type Hex } from "viem";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import {
+  PublicKey,
+  Transaction,
+  TransactionInstruction,
+} from "@solana/web3.js";
+import {
+  createAssociatedTokenAccountInstruction,
+  createTransferCheckedInstruction,
+  getAssociatedTokenAddress,
+} from "@solana/spl-token";
 import { api } from "./api";
-import { HAS_PRIVY, useAuth } from "./auth";
+import { useAuth } from "./auth";
+import {
+  BBC_MINT,
+  MEMO_PROGRAM_ID,
+  SOLANA_TREASURY_ADDRESS,
+  USDC_DEVNET_MINT,
+  explorerTxUrl,
+  toPublicKey,
+} from "./solana";
 import type { AnchorRequest, OnchainTx, SettleRequest } from "./types";
-
-const ERC20_TRANSFER_ABI = [
-  {
-    name: "transfer",
-    type: "function",
-    stateMutability: "nonpayable",
-    inputs: [
-      { name: "to", type: "address" },
-      { name: "amount", type: "uint256" },
-    ],
-    outputs: [{ name: "", type: "bool" }],
-  },
-] as const;
 
 export type OnchainExecutor = {
   /** Sign the trace-hash anchor with the user's wallet, then persist it. */
   anchor: (req: AnchorRequest) => Promise<OnchainTx>;
-  /** Sign the symbolic USDC settle with the user's wallet, then persist it. */
+  /** Sign the symbolic SPL settle with the user's wallet, then persist it. */
   settle: (req: SettleRequest) => Promise<OnchainTx>;
 };
 
 /**
  * Personal-mode signer: the server never holds the user's key, so the browser
- * signs the Arc anchor + settle txns via the Privy embedded wallet and reports
- * the resulting hashes back to be recorded in the ledger.
+ * signs the Solana anchor + settle txns with the connected wallet and reports
+ * the resulting signatures back to be recorded in the ledger.
+ *
+ * anchor → an SPL Memo instruction carrying the reasoning-trace hash.
+ * settle → an SPL token transfer (USDC-devnet, or $BBC once its mint is set).
  */
 export function useOnchainExecutor(): OnchainExecutor {
-  // sendTransaction requires PrivyProvider; only call the hook when Privy is
-  // configured (HAS_PRIVY is a stable build-time constant — safe to branch on).
-  if (!HAS_PRIVY) {
-    // No hooks in this branch — keeps the hook-call order stable (HAS_PRIVY is
-    // a build-time constant, so exactly one branch runs for the app's lifetime).
-    const disabled = async (): Promise<never> => {
-      throw new Error("Privy not configured — personal mode unavailable.");
-    };
-    return { anchor: disabled, settle: disabled };
-  }
-  /* eslint-disable react-hooks/rules-of-hooks */
-  const { sendTransaction } = useSendTransaction();
+  const { connection } = useConnection();
+  const { publicKey, sendTransaction } = useWallet();
   // signer address — recorded as from_address so the ledger can attribute these
   // txns (and their positions) to this user in personal mode.
   const { address } = useAuth();
 
+  const send = useCallback(
+    async (instructions: TransactionInstruction[], payer: PublicKey) => {
+      const tx = new Transaction().add(...instructions);
+      tx.feePayer = payer;
+      const { blockhash, lastValidBlockHeight } =
+        await connection.getLatestBlockhash();
+      tx.recentBlockhash = blockhash;
+      const signature = await sendTransaction(tx, connection);
+      await connection.confirmTransaction(
+        { signature, blockhash, lastValidBlockHeight },
+        "confirmed",
+      );
+      return signature;
+    },
+    [connection, sendTransaction],
+  );
+
   const anchor = useCallback(
     async (req: AnchorRequest): Promise<OnchainTx> => {
-      const data = (req.trace_hash.startsWith("0x")
-        ? req.trace_hash
-        : `0x${req.trace_hash}`) as Hex;
-      const { hash } = await sendTransaction({
-        to: req.to,
-        data,
-        value: 0,
-        chainId: req.chain_id,
+      if (!publicKey) throw new Error("Connect a Solana wallet first.");
+      const memo = new TransactionInstruction({
+        keys: [{ pubkey: publicKey, isSigner: true, isWritable: true }],
+        programId: MEMO_PROGRAM_ID,
+        data: Buffer.from(`bbc:trace:${req.trace_hash}`, "utf8"),
       });
-      return api.recordAnchor({
+      const signature = await send([memo], publicKey);
+      const rec = await api.recordAnchor({
         decision_id: req.decision_id,
         market_id: req.market_id,
         kind: "anchor",
-        tx_hash: hash,
+        tx_hash: signature,
         trace_hash: req.trace_hash,
         from_address: address,
       });
+      return { ...rec, tx_hash: signature, explorer_url: explorerTxUrl(signature) };
     },
-    [sendTransaction, address],
+    [publicKey, send, address],
   );
 
   const settle = useCallback(
     async (req: SettleRequest): Promise<OnchainTx> => {
-      const data = encodeFunctionData({
-        abi: ERC20_TRANSFER_ABI,
-        functionName: "transfer",
-        args: [
-          req.treasury as Hex,
-          parseUnits(String(req.amount_usdc), req.decimals),
-        ],
-      });
-      const { hash } = await sendTransaction({
-        to: req.usdc_address,
-        data,
-        value: 0,
-        chainId: req.chain_id,
-      });
-      return api.recordAnchor({
+      if (!publicKey) throw new Error("Connect a Solana wallet first.");
+
+      // Prefer $BBC once its mint exists; otherwise the devnet USDC stand-in.
+      // Anything the server sent that isn't valid base58 (e.g. a legacy EVM
+      // address) is ignored rather than crashing the flow.
+      const mint =
+        toPublicKey(req.mint) ??
+        BBC_MINT ??
+        toPublicKey(req.usdc_address) ??
+        new PublicKey(USDC_DEVNET_MINT);
+
+      // Treasury: server value → env default → self-send (symbolic).
+      const treasury =
+        toPublicKey(req.treasury) ??
+        toPublicKey(SOLANA_TREASURY_ADDRESS) ??
+        publicKey;
+
+      const decimals = req.decimals ?? 6;
+      const amount = BigInt(
+        Math.round(req.amount_usdc * 10 ** decimals),
+      );
+
+      const from = await getAssociatedTokenAddress(mint, publicKey);
+      const to = await getAssociatedTokenAddress(mint, treasury);
+
+      const ixs: TransactionInstruction[] = [];
+      // Create the treasury's ATA on first settle so the transfer can land.
+      const toInfo = await connection.getAccountInfo(to);
+      if (!toInfo) {
+        ixs.push(
+          createAssociatedTokenAccountInstruction(publicKey, to, treasury, mint),
+        );
+      }
+      ixs.push(
+        createTransferCheckedInstruction(
+          from,
+          mint,
+          to,
+          publicKey,
+          amount,
+          decimals,
+        ),
+      );
+
+      const signature = await send(ixs, publicKey);
+      const rec = await api.recordAnchor({
         decision_id: req.decision_id,
         market_id: req.market_id,
         kind: "settle",
-        tx_hash: hash,
+        tx_hash: signature,
         usdc_amount: req.amount_usdc,
-        to_address: req.treasury,
+        to_address: treasury.toBase58(),
         from_address: address,
       });
+      return { ...rec, tx_hash: signature, explorer_url: explorerTxUrl(signature) };
     },
-    [sendTransaction, address],
+    [publicKey, connection, send, address],
   );
-  /* eslint-enable react-hooks/rules-of-hooks */
 
   return { anchor, settle };
 }

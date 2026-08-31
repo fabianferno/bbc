@@ -1,4 +1,8 @@
-# Prediction Market AI Agent — PRD
+# BBC — Prediction Market Agent PRD
+
+> The trading engine behind **BBC, the Bull Broadcasting Corporation** ($BBC on Solana).
+> This document is the source of truth for what the agent does and for the pre-committed gates
+> that let it advance between phases. The branding changed; the gates in §3 did not.
 
 **Owner:** Single user (you)
 **Status:** Pre-build, planning

@@ -1,4 +1,4 @@
-"""One-time migration: SQLite (data/agent.db) -> MongoDB (openmind).
+"""One-time migration: SQLite (data/agent.db) -> MongoDB (BBC).
 
 Idempotent. Copies every row verbatim (PK column -> _id), seeds counters to
 max(_id) for autoincrement tables, then verifies counts + a content spot-check.

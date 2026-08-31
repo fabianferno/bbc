@@ -1,132 +1,194 @@
 @import "tailwindcss";
 
 /*
-  openmind — intelligence-terminal / classified-dossier aesthetic.
-  Ink-black canvas, hairline rules, editorial serif headlines, mono data,
-  a single electric-lime signal accent for live + on-chain states.
+  BBC — the Bull Broadcasting Corporation.
+  Broadcast news world: a dark studio, a lit video wall of market monitors,
+  and the rolling red furniture of a 24h news channel. The red bar is the
+  page's spine, not an accent — headlines, straps and cut-ins all ride it.
 */
 
 @theme inline {
-  --color-bg: #08090a;
-  --color-bg-elev: #0d0f11;
-  --color-panel: #0b0d0f;
-  --color-line: #191d22;
-  --color-line-bright: #262b31;
-  --color-text: #e9e7df;
-  --color-muted: #8b9099;
-  --color-faint: #565b63;
-  --color-signal: #c6f24a;
-  --color-signal-dim: #2a3417;
-  --color-amber: #f2b441;
-  --color-cyan: #62d2e6;
-  --color-danger: #f2603c;
+  /* broadcast furniture */
+  --color-red: #bb1919;
+  --color-red-deep: #8e1414;
+  --color-red-bright: #e02020;
 
-  --font-serif: var(--font-instrument), Georgia, serif;
-  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
-}
+  /* the studio */
+  --color-studio: #0a0d11;
+  --color-studio-2: #11161d;
+  --color-desk: #171d26;
+  --color-rule: #232b36;
+  --color-rule-lit: #33404f;
 
-* {
-  border-color: var(--color-line);
+  /* type */
+  --color-white: #ffffff;
+  --color-ink: #f2f3f5;
+  --color-dim: #9aa4b2;
+  --color-faint: #66707d;
+
+  /* status lamps */
+  --color-live: #ff2d2d;
+  --color-up: #33d17a;
+  --color-down: #ff5a4d;
+  --color-hold: #f2b441;
+  --color-monitor: #2f6fd0;
+
+  --font-head: var(--font-source-serif), Georgia, "Times New Roman", serif;
+  --font-ui: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
 }
 
 html {
-  background: var(--color-bg);
+  background: var(--color-studio);
   color-scheme: dark;
 }
 
 body {
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-family: var(--font-sans);
+  background: var(--color-studio);
+  color: var(--color-ink);
+  font-family: var(--font-ui);
+  font-feature-settings: "tnum" 1;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overflow-x: hidden;
 }
 
 ::selection {
-  background: var(--color-signal);
-  color: #07140a;
+  background: var(--color-red);
+  color: #fff;
 }
 
-::-webkit-scrollbar { width: 9px; height: 9px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--color-line-bright); }
-::-webkit-scrollbar-thumb:hover { background: var(--color-faint); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--color-studio); }
+::-webkit-scrollbar-thumb { background: var(--color-rule); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-rule-lit); }
 
-/* ---- atmosphere ---- */
-.grain::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  pointer-events: none;
-  opacity: 0.04;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
 }
 
-.scanlines::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 59;
-  pointer-events: none;
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0.012) 0px,
-    rgba(255, 255, 255, 0.012) 1px,
-    transparent 1px,
-    transparent 3px
-  );
-}
+/* ── the studio ─────────────────────────────────────────────────────────
+   An out-of-focus newsroom behind the anchor: banks of monitors throwing
+   cold light, a warm key from camera left, and the red channel wash that
+   sits behind every BBC-style set. Pure light, no imagery.               */
 
-.vignette {
+.studio {
+  position: relative;
   background:
-    radial-gradient(140% 120% at 50% -10%, rgba(198, 242, 74, 0.05), transparent 55%),
-    radial-gradient(120% 120% at 100% 110%, rgba(98, 210, 230, 0.04), transparent 50%);
+    radial-gradient(58% 44% at 12% 20%, rgba(47, 111, 208, 0.20), transparent 68%),
+    radial-gradient(46% 38% at 88% 16%, rgba(187, 25, 25, 0.22), transparent 70%),
+    radial-gradient(70% 50% at 50% 108%, rgba(47, 111, 208, 0.10), transparent 72%),
+    linear-gradient(180deg, #11161d 0%, #0a0d11 62%);
 }
 
-/* ---- primitives ---- */
-.panel { background: var(--color-panel); border: 1px solid var(--color-line); }
-.hairline { border: 1px solid var(--color-line); }
-
-.label {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--color-faint);
-}
-
-.mono { font-family: var(--font-mono); }
-.serif { font-family: var(--font-serif); }
-
-.glow-signal { text-shadow: 0 0 18px rgba(198, 242, 74, 0.55); }
-
-.signal-dot { animation: pulse 1.8s infinite; }
-@keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(198, 242, 74, 0.55); }
-  70% { box-shadow: 0 0 0 7px rgba(198, 242, 74, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(198, 242, 74, 0); }
-}
-
-.grid-bg {
-  background-image:
-    linear-gradient(var(--color-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--color-line) 1px, transparent 1px);
-  background-size: 44px 44px;
-  background-position: -1px -1px;
-  opacity: 0.4;
-}
-
-.link-underline {
-  background-image: linear-gradient(var(--color-signal), var(--color-signal));
-  background-size: 0% 1px;
+/* the video wall: soft rectangles of monitor light, deliberately defocused */
+.studio::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  filter: blur(22px);
+  background:
+    linear-gradient(90deg, transparent 4%, rgba(47, 111, 208, 0.30) 5%, rgba(47, 111, 208, 0.30) 14%, transparent 15%),
+    linear-gradient(90deg, transparent 17%, rgba(226, 232, 240, 0.13) 18%, rgba(226, 232, 240, 0.13) 25%, transparent 26%),
+    linear-gradient(90deg, transparent 74%, rgba(187, 25, 25, 0.34) 75%, rgba(187, 25, 25, 0.34) 84%, transparent 85%),
+    linear-gradient(90deg, transparent 87%, rgba(47, 111, 208, 0.24) 88%, rgba(47, 111, 208, 0.24) 96%, transparent 97%);
   background-repeat: no-repeat;
-  background-position: 0 100%;
-  transition: background-size 0.3s ease;
+  background-size: 100% 32%, 100% 22%, 100% 40%, 100% 26%;
+  background-position: 0 12%, 0 50%, 0 8%, 0 46%;
+  mask-image: linear-gradient(180deg, #000 0%, #000 55%, transparent 92%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 55%, transparent 92%);
 }
-.link-underline:hover { background-size: 100% 1px; }
 
-@keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
-.caret::after { content: "▋"; margin-left: 1px; animation: blink 1s step-end infinite; color: var(--color-signal); }
+/* ── broadcast furniture ────────────────────────────────────────────── */
+
+.headline {
+  font-family: var(--font-head);
+  font-weight: 600;
+  letter-spacing: -0.022em;
+  line-height: 1.02;
+}
+
+.strapline {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  letter-spacing: 0.005em;
+}
+
+.chyron {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.numeric { font-variant-numeric: tabular-nums; }
+
+/* the panel is a studio monitor: lit face, hairline bezel, one shadow */
+.monitor {
+  background: linear-gradient(180deg, rgba(23, 29, 38, 0.92), rgba(15, 20, 27, 0.92));
+  border: 1px solid var(--color-rule);
+  border-radius: 14px;
+  box-shadow: 0 18px 40px -24px rgba(0, 0, 0, 0.9);
+}
+
+.monitor-lit {
+  border-color: rgba(187, 25, 25, 0.55);
+  box-shadow: 0 18px 44px -22px rgba(187, 25, 25, 0.55);
+}
+
+/* ── the live lamp ──────────────────────────────────────────────────── */
+
+.lamp {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-live);
+  animation: lamp 1.6s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+@keyframes lamp {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 45, 45, 0.65); }
+  70%  { box-shadow: 0 0 0 8px rgba(255, 45, 45, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 45, 45, 0); }
+}
+
+/* ── the ticker ─────────────────────────────────────────────────────── */
+
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: roll var(--roll, 64s) linear infinite;
+}
+.ticker:hover .ticker-track { animation-play-state: paused; }
+@keyframes roll {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+
+/* ── the cut-in: how a lower third actually arrives on air ──────────── */
+
+.cut-in {
+  animation: cut-in 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: left center;
+}
+@keyframes cut-in {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+
+.cut-up {
+  animation: cut-up 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes cut-up {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track { animation: none; }
+  .cut-in, .cut-up { animation: none; }
+  .lamp { animation: none; }
+}

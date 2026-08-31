@@ -1,4 +1,4 @@
-"""openmind GraphRAG: build an ontology + entity knowledge graph per market.
+"""BBC GraphRAG: build an ontology + entity knowledge graph per market.
 
 Pipeline:  ontology design (cheap LLM) → entity/relation extraction (main LLM)
            → assemble + cap + stats → compact summary for the reasoning prompt.

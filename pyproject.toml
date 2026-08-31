@@ -1,7 +1,7 @@
 [project]
-name = "openclob"
+name = "bbc"
 version = "0.1.0"
-description = "Autonomous prediction-market agent (Bedrock + Tavily + Polymarket/Manifold)"
+description = "BBC — the Bull Broadcasting Corporation: an autonomous prediction-market trading agent that reports its own trades."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -13,8 +13,8 @@ dependencies = [
     "structlog>=24.1",
     "tenacity>=8.2",
     "py-clob-client>=0.17",
-    "web3>=6.15",
-    "eth-account>=0.11",
+    "solana>=0.34,<0.36",
+    "solders>=0.21,<0.22",
     "rich>=13.7",
     "click>=8.1",
     "fastapi>=0.110",
@@ -35,7 +35,7 @@ dev = [
 ]
 
 [project.scripts]
-openclob = "agent.__main__:cli"
+bbc = "agent.__main__:cli"
 
 [build-system]
 requires = ["setuptools>=68"]

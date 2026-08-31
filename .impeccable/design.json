@@ -1,0 +1,271 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-31T00:00:00.000Z",
+  "title": "Design System: BBC — the Bull Broadcasting Corporation",
+  "extensions": {
+    "colorMeta": {
+      "red": {
+        "role": "primary",
+        "displayName": "Broadcast Red",
+        "canonical": "#bb1919",
+        "tonalRamp": ["#2b0606", "#4a0a0a", "#6d0f0f", "#8e1414", "#bb1919", "#e02020", "#f06a5f", "#fbc4bd"]
+      },
+      "red-deep": {
+        "role": "primary",
+        "displayName": "Deep Red",
+        "canonical": "#8e1414",
+        "tonalRamp": ["#210505", "#3a0808", "#570c0c", "#711010", "#8e1414", "#b52020", "#d75c52", "#f3b8b1"]
+      },
+      "red-bright": {
+        "role": "primary",
+        "displayName": "Bright Red",
+        "canonical": "#e02020",
+        "tonalRamp": ["#330707", "#570b0b", "#7d1111", "#a51818", "#c81c1c", "#e02020", "#ef6b60", "#fbc9c3"]
+      },
+      "monitor": {
+        "role": "secondary",
+        "displayName": "Monitor Blue",
+        "canonical": "#2f6fd0",
+        "tonalRamp": ["#08172e", "#0d2650", "#123974", "#1a5099", "#2f6fd0", "#5a8fdd", "#8fb5ea", "#cfdff8"]
+      },
+      "live": {
+        "role": "tertiary",
+        "displayName": "Live Lamp Red",
+        "canonical": "#ff2d2d",
+        "tonalRamp": ["#3a0505", "#5f0909", "#870f0f", "#b01717", "#d92020", "#ff2d2d", "#ff7a75", "#ffcdca"]
+      },
+      "up": {
+        "role": "tertiary",
+        "displayName": "Up Green",
+        "canonical": "#33d17a",
+        "tonalRamp": ["#062715", "#0a4326", "#0f6238", "#17834b", "#22a862", "#33d17a", "#77e4a9", "#c5f4da"]
+      },
+      "down": {
+        "role": "tertiary",
+        "displayName": "Down Coral",
+        "canonical": "#ff5a4d",
+        "tonalRamp": ["#3a0f0b", "#5f1913", "#87241c", "#b03127", "#d94235", "#ff5a4d", "#ff958c", "#ffd5d0"]
+      },
+      "hold": {
+        "role": "tertiary",
+        "displayName": "Hold Amber",
+        "canonical": "#f2b441",
+        "tonalRamp": ["#331f04", "#553409", "#7a4c0e", "#a26715", "#cb851f", "#f2b441", "#f7cf85", "#fdeccb"]
+      },
+      "studio": {
+        "role": "neutral",
+        "displayName": "Studio Floor",
+        "canonical": "#0a0d11",
+        "tonalRamp": ["#04060a", "#0a0d11", "#11161d", "#171d26", "#232b36", "#33404f", "#66707d", "#9aa4b2"]
+      },
+      "studio-2": {
+        "role": "neutral",
+        "displayName": "Studio Band",
+        "canonical": "#11161d",
+        "tonalRamp": ["#04060a", "#0a0d11", "#11161d", "#171d26", "#232b36", "#33404f", "#66707d", "#9aa4b2"]
+      },
+      "desk": {
+        "role": "neutral",
+        "displayName": "Lit Desk",
+        "canonical": "#171d26",
+        "tonalRamp": ["#04060a", "#0a0d11", "#11161d", "#171d26", "#232b36", "#33404f", "#66707d", "#9aa4b2"]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Bezel Hairline",
+        "canonical": "#232b36",
+        "tonalRamp": ["#04060a", "#0a0d11", "#11161d", "#171d26", "#232b36", "#33404f", "#66707d", "#9aa4b2"]
+      },
+      "rule-lit": {
+        "role": "neutral",
+        "displayName": "Lit Hairline",
+        "canonical": "#33404f",
+        "tonalRamp": ["#0a0d11", "#11161d", "#171d26", "#232b36", "#33404f", "#4a5a6c", "#66707d", "#9aa4b2"]
+      },
+      "white": {
+        "role": "neutral",
+        "displayName": "Headline White",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#171d26", "#232b36", "#33404f", "#66707d", "#9aa4b2", "#cfd4da", "#f2f3f5", "#ffffff"]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Body Ink",
+        "canonical": "#f2f3f5",
+        "tonalRamp": ["#171d26", "#232b36", "#33404f", "#66707d", "#9aa4b2", "#cfd4da", "#f2f3f5", "#ffffff"]
+      },
+      "dim": {
+        "role": "neutral",
+        "displayName": "Supporting Dim",
+        "canonical": "#9aa4b2",
+        "tonalRamp": ["#171d26", "#232b36", "#33404f", "#66707d", "#9aa4b2", "#b8c0ca", "#d6dbe1", "#f2f3f5"]
+      },
+      "faint": {
+        "role": "neutral",
+        "displayName": "Recessive Faint",
+        "canonical": "#66707d",
+        "tonalRamp": ["#11161d", "#171d26", "#232b36", "#33404f", "#4a5a6c", "#66707d", "#9aa4b2", "#cfd4da"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display Headline", "purpose": "The one hero headline per surface. Source Serif 4 at ~16ch measure, set almost solid." },
+      "headline": { "displayName": "On-Air Headline", "purpose": "The headline inside a lower third and section-opening statements. Text-balanced." },
+      "title": { "displayName": "Readout Title", "purpose": "The figure in a Stat, the yes-price in a rundown row, the heading of an empty state. Always paired with .numeric when numeric." },
+      "strapline": { "displayName": "Strapline", "purpose": "The second line under a lower third, and the text of a breaking cut-in. Archivo 600 at sentence length." },
+      "body": { "displayName": "Body", "purpose": "Explanatory prose at a 52-70ch measure. Plain Archivo, normal weight." },
+      "label": { "displayName": "Chyron", "purpose": "Every small label without exception: section names, pills, button text, table headers, statuses, tape tags, nav items, timestamps." }
+    },
+    "shadows": [
+      { "name": "monitor", "value": "0 18px 40px -24px rgba(0, 0, 0, 0.9)", "purpose": "The single structural shadow in the system. The pool beneath a lit studio monitor panel. Nothing else casts a shadow." },
+      { "name": "monitor-lit", "value": "0 18px 44px -22px rgba(187, 25, 25, 0.55)", "purpose": "The monitor shadow burning red, paired with a rgba(187,25,25,0.55) border, for the one panel currently on air." },
+      { "name": "anchor-key", "value": "drop-shadow(0 28px 44px rgba(0, 0, 0, 0.6))", "purpose": "The bull anchor's key light against the studio floor, with a blurred red ellipse behind the shoulders." },
+      { "name": "lamp-pulse", "value": "0 0 0 0 rgba(255, 45, 45, 0.65) -> 0 0 0 8px rgba(255, 45, 45, 0)", "purpose": "The animated expanding ring of the live on-air lamp. Lamps only." }
+    ],
+    "motion": [
+      { "name": "ease-broadcast", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "The single decelerating ease shared by every animation in the system." },
+      { "name": "cut-in", "value": "clip-path: inset(0 100% 0 0) -> inset(0 0 0 0); 620ms; transform-origin: left center", "purpose": "The signature wipe. How a lower third or a breaking banner arrives on air. Never substitute a fade." },
+      { "name": "cut-up", "value": "opacity 0 -> 1, translate3d(0, 14px, 0) -> none; 520ms", "purpose": "Content appearing inside a panel: a new segment row, a settled verification card." },
+      { "name": "roll", "value": "translate3d(0,0,0) -> translate3d(-50%,0,0); linear infinite; duration from --roll", "purpose": "The ticker track. Items are duplicated once so the -50% loop is seamless; hover pauses it." },
+      { "name": "lamp", "value": "1.6s cubic-bezier(0.16, 1, 0.3, 1) infinite", "purpose": "The live lamp's pulse." },
+      { "name": "reduced-motion", "value": "@media (prefers-reduced-motion: reduce) { ticker-track, cut-in, cut-up, lamp { animation: none } }", "purpose": "All four devices are disabled wholesale. Colour transitions remain." }
+    ],
+    "breakpoints": [
+      { "name": "min", "value": "375px" },
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "channel", "value": "1440px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The channel's principal action. Broadcast red ground, chyron label, hard square corners.",
+      "html": "<button class=\"ds-btn-primary\"><svg class=\"ds-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4.9 19.1C1 15.2 1 8.8 4.9 4.9\"/><path d=\"M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5\"/><circle cx=\"12\" cy=\"12\" r=\"2\"/><path d=\"M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5\"/><path d=\"M19.1 4.9C23 8.8 23 15.1 19.1 19\"/></svg>Watch the desk run live</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: #bb1919; color: #ffffff; border: none; border-radius: 0; padding: 8px 14px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; cursor: pointer; transition: background-color 150ms, color 150ms; } .ds-btn-primary .ds-icon { width: 14px; height: 14px; flex-shrink: 0; } .ds-btn-primary:hover { background: #e02020; } .ds-btn-primary:active { transform: translateY(1px); } .ds-btn-primary:focus-visible { outline: 2px solid #fff; outline-offset: 2px; } .ds-btn-primary:disabled { background: rgba(187,25,25,0.4); opacity: 0.6; cursor: not-allowed; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary action. A lit hairline border that turns broadcast red on hover.",
+      "html": "<button class=\"ds-btn-ghost\">Open the book</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: transparent; color: #f2f3f5; border: 1px solid #33404f; border-radius: 0; padding: 8px 14px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; cursor: pointer; transition: border-color 150ms, color 150ms; } .ds-btn-ghost:hover { border-color: #bb1919; color: #ffffff; } .ds-btn-ghost:active { transform: translateY(1px); } .ds-btn-ghost:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }"
+    },
+    {
+      "name": "Status Pill",
+      "kind": "chip",
+      "refersTo": "pill-neutral",
+      "description": "A chyron in a hairline box. The amber 'hold' tone is the paper-mode marker that must accompany every P&L figure.",
+      "html": "<span class=\"ds-pill ds-pill--hold\">Paper mode &middot; simulated on Manifold</span> <span class=\"ds-pill ds-pill--up\">on chain</span> <span class=\"ds-pill ds-pill--neutral\">closed</span>",
+      "css": ".ds-pill { display: inline-flex; align-items: center; gap: 6px; border: 1px solid transparent; border-radius: 0; padding: 2px 8px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; } .ds-pill--neutral { border-color: #33404f; color: #9aa4b2; } .ds-pill--hold { border-color: rgba(242,180,65,0.45); background: rgba(242,180,65,0.1); color: #f2b441; } .ds-pill--up { border-color: rgba(51,209,122,0.45); background: rgba(51,209,122,0.1); color: #33d17a; } .ds-pill--down { border-color: rgba(255,90,77,0.45); background: rgba(255,90,77,0.1); color: #ff5a4d; } .ds-pill--monitor { border-color: rgba(47,111,208,0.5); background: rgba(47,111,208,0.1); color: #2f6fd0; } .ds-pill--red { border-color: transparent; background: #bb1919; color: #ffffff; }"
+    },
+    {
+      "name": "Monitor Panel",
+      "kind": "card",
+      "refersTo": "monitor",
+      "description": "The system's only container. A lit studio screen: 14px corner, one hairline bezel, one soft shadow. The only rounded rectangle in the world.",
+      "html": "<div class=\"ds-monitor\"><div class=\"ds-monitor__label\">Paper P&amp;L</div><div class=\"ds-monitor__value\">+12.40</div><div class=\"ds-monitor__sub\">simulated on Manifold</div></div>",
+      "css": ".ds-monitor { background: linear-gradient(180deg, rgba(23,29,38,0.92), rgba(15,20,27,0.92)); border: 1px solid #232b36; border-radius: 14px; box-shadow: 0 18px 40px -24px rgba(0,0,0,0.9); padding: 14px 16px; } .ds-monitor--lit { border-color: rgba(187,25,25,0.55); box-shadow: 0 18px 44px -22px rgba(187,25,25,0.55); } .ds-monitor--error { border-color: rgba(255,90,77,0.45); } .ds-monitor__label { font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; color: #66707d; margin-bottom: 8px; } .ds-monitor__value { font-family: 'Source Serif 4', Georgia, serif; font-weight: 600; font-size: 30px; line-height: 1; letter-spacing: -0.022em; font-variant-numeric: tabular-nums; color: #33d17a; } .ds-monitor__sub { margin-top: 6px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-size: 12px; color: #66707d; }"
+    },
+    {
+      "name": "Lower Third",
+      "kind": "custom",
+      "refersTo": "lower-third",
+      "description": "The channel's headline device. A solid red bar with the serif brand block and the headline, over a deep-red strap carrying a one-line summary and the studio clock flush right. Arrives with the cut-in wipe.",
+      "html": "<div class=\"ds-lower-third\"><div class=\"ds-lt__bar\"><span class=\"ds-lt__brand\"><span class=\"ds-lt__brandmark\">BBC</span><span class=\"ds-lt__brandsuffix\">Markets</span></span><h2 class=\"ds-lt__headline\">The agent that reports its own trades</h2></div><div class=\"ds-lt__strap\"><p class=\"ds-lt__strapline\"><span class=\"ds-lt__tick\"></span><span>Testnet alpha is on air in paper mode &mdash; the reasoning is real, the money is not</span></p><time class=\"ds-lt__clock\">21:47</time></div></div>",
+      "css": ".ds-lower-third { width: 100%; user-select: none; } .ds-lt__bar { display: flex; align-items: flex-end; gap: 28px; background: #bb1919; padding: 16px 28px; animation: ds-cut-in 620ms cubic-bezier(0.16,1,0.3,1) both; transform-origin: left center; } @keyframes ds-cut-in { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } } .ds-lt__brand { flex-shrink: 0; padding-bottom: 2px; } .ds-lt__brandmark { display: block; font-family: 'Source Serif 4', Georgia, serif; font-weight: 600; font-size: 30px; line-height: 1; letter-spacing: -0.022em; color: #ffffff; } .ds-lt__brandsuffix { display: block; margin-top: 4px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; color: rgba(255,255,255,0.8); } .ds-lt__headline { flex: 1 1 0; min-width: 0; margin: 0; font-family: 'Source Serif 4', Georgia, serif; font-weight: 600; font-size: clamp(1.25rem, 3.1vw, 2.4rem); line-height: 1.02; letter-spacing: -0.022em; text-wrap: balance; color: #ffffff; } .ds-lt__strap { display: flex; align-items: stretch; background: #8e1414; } .ds-lt__strapline { flex: 1 1 0; min-width: 0; display: flex; align-items: center; gap: 10px; margin: 0; padding: 8px 28px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.005em; color: rgba(255,255,255,0.95); } .ds-lt__strapline > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ds-lt__tick { flex-shrink: 0; width: 6px; height: 6px; background: rgba(255,255,255,0.85); } .ds-lt__clock { flex-shrink: 0; display: flex; align-items: center; background: #bb1919; padding: 0 14px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-weight: 600; font-size: 15px; font-variant-numeric: tabular-nums; color: #ffffff; }"
+    },
+    {
+      "name": "Rundown Row",
+      "kind": "custom",
+      "refersTo": "rundown-row",
+      "description": "The system's answer to a card grid. A market is a line in a running order: index, question with metadata, and the yes-price as a large serif numeral. The whole row is the link.",
+      "html": "<a class=\"ds-rundown\" href=\"#\"><span class=\"ds-rundown__idx\">03</span><span class=\"ds-rundown__body\"><span class=\"ds-rundown__q\">Will the ECB cut rates before the end of Q3?</span><span class=\"ds-rundown__meta\"><span class=\"ds-rundown__cat\">Macro</span><span aria-hidden=\"true\">&middot;</span><span>closes in 12d</span><span aria-hidden=\"true\">&middot;</span><span class=\"ds-rundown__vol\">48,200 vol</span></span></span><span class=\"ds-rundown__right\"><span class=\"ds-rundown__priceblock\"><span class=\"ds-rundown__price\">64%</span><span class=\"ds-rundown__yes\">yes</span></span><svg class=\"ds-rundown__arrow\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 17 17 7\"/><path d=\"M7 7h10v10\"/></svg></span></a>",
+      "css": ".ds-rundown { display: grid; grid-template-columns: auto 1fr auto; align-items: center; column-gap: 24px; row-gap: 4px; border-bottom: 1px solid #232b36; padding: 14px 16px; text-decoration: none; transition: background-color 150ms; } .ds-rundown:hover { background: #171d26; } .ds-rundown:focus-visible { outline: 2px solid #fff; outline-offset: -2px; } .ds-rundown__idx { width: 28px; flex-shrink: 0; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; font-variant-numeric: tabular-nums; color: #66707d; transition: color 150ms; } .ds-rundown:hover .ds-rundown__idx { color: #e02020; } .ds-rundown__body { min-width: 0; } .ds-rundown__q { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-size: 16px; line-height: 1.375; color: #f2f3f5; transition: color 150ms; } .ds-rundown:hover .ds-rundown__q { color: #ffffff; } .ds-rundown__meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; color: #66707d; } .ds-rundown__cat { color: #9aa4b2; } .ds-rundown__vol { font-variant-numeric: tabular-nums; } .ds-rundown__right { display: flex; flex-shrink: 0; align-items: center; gap: 16px; } .ds-rundown__priceblock { text-align: right; } .ds-rundown__price { display: block; font-family: 'Source Serif 4', Georgia, serif; font-weight: 600; font-size: 24px; line-height: 1; letter-spacing: -0.022em; font-variant-numeric: tabular-nums; color: #ffffff; } .ds-rundown__yes { display: block; margin-top: 4px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; color: #66707d; } .ds-rundown__arrow { width: 16px; height: 16px; flex-shrink: 0; color: #66707d; transition: color 150ms; } .ds-rundown:hover .ds-rundown__arrow { color: #e02020; }"
+    },
+    {
+      "name": "Ticker",
+      "kind": "nav",
+      "refersTo": "ticker",
+      "description": "The rolling tape fixed to the bottom 3.5rem of every page. A red live cap, then a seamless -50% loop of tone-tagged items. Hover pauses the track so a line can be read.",
+      "html": "<div class=\"ds-ticker\" role=\"marquee\" aria-label=\"Market ticker\"><div class=\"ds-ticker__cap\"><span class=\"ds-lamp\" aria-hidden=\"true\"></span><span>Live tape</span></div><div class=\"ds-ticker__win\"><div class=\"ds-ticker__track\"><span class=\"ds-ticker__item\"><span class=\"ds-ticker__tag ds-ticker__tag--up\">Macro</span><span class=\"ds-ticker__text\">18 resolved &middot; Brier 0.184 &middot; paper P&amp;L +12.40</span><span class=\"ds-ticker__div\"></span></span><span class=\"ds-ticker__item\"><span class=\"ds-ticker__tag\">On chain</span><span class=\"ds-ticker__text\">241 reasoning traces anchored &middot; 96 settlements</span><span class=\"ds-ticker__div\"></span></span></div></div></div>",
+      "css": ".ds-ticker { display: flex; align-items: stretch; background: #0d1117; border-top: 1px solid #232b36; overflow: hidden; } .ds-ticker__cap { display: flex; flex-shrink: 0; align-items: center; gap: 8px; background: #bb1919; padding: 0 16px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; color: #ffffff; } .ds-ticker__win { position: relative; min-width: 0; flex: 1 1 0; overflow: hidden; } .ds-ticker__track { display: flex; width: max-content; align-items: center; padding: 8px 0; animation: ds-roll 64s linear infinite; } .ds-ticker:hover .ds-ticker__track { animation-play-state: paused; } @keyframes ds-roll { from { transform: translate3d(0,0,0); } to { transform: translate3d(-50%,0,0); } } .ds-ticker__item { display: flex; flex-shrink: 0; align-items: center; gap: 10px; white-space: nowrap; padding: 0 20px; font-size: 13px; } .ds-ticker__tag { font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; color: #e02020; } .ds-ticker__tag--up { color: #33d17a; } .ds-ticker__tag--down { color: #ff5a4d; } .ds-ticker__tag--hold { color: #f2b441; } .ds-ticker__text { font-family: Archivo, ui-sans-serif, system-ui, sans-serif; color: #9aa4b2; } .ds-ticker__div { margin-left: 12px; width: 1px; height: 12px; background: #232b36; } .ds-lamp { display: inline-block; width: 8px; height: 8px; border-radius: 999px; background: #ff2d2d; animation: ds-lamp 1.6s cubic-bezier(0.16,1,0.3,1) infinite; } @keyframes ds-lamp { 0% { box-shadow: 0 0 0 0 rgba(255,45,45,0.65); } 70% { box-shadow: 0 0 0 8px rgba(255,45,45,0); } 100% { box-shadow: 0 0 0 0 rgba(255,45,45,0); } } @media (prefers-reduced-motion: reduce) { .ds-ticker__track, .ds-lamp { animation: none; } }"
+    },
+    {
+      "name": "Channel Bar",
+      "kind": "nav",
+      "refersTo": "nav",
+      "description": "The sticky 56px header. Serif wordmark in a solid red box, chyron programme links with a red bottom border when current, and an on-air status cluster with a pulsing lamp and the studio clock.",
+      "html": "<header class=\"ds-nav\"><a class=\"ds-nav__brand\" href=\"#\"><span class=\"ds-nav__mark\">BBC</span><span class=\"ds-nav__full\">Bull Broadcasting Corporation</span></a><nav class=\"ds-nav__progs\"><a class=\"ds-nav__prog ds-nav__prog--on\" href=\"#\" aria-current=\"page\">On air</a><a class=\"ds-nav__prog\" href=\"#\">The night desk</a><a class=\"ds-nav__prog\" href=\"#\">The book</a></nav><div class=\"ds-nav__right\"><span class=\"ds-nav__status\"><span class=\"ds-lamp\" aria-hidden=\"true\"></span><span>Testnet alpha &middot; paper</span></span><time class=\"ds-nav__clock\">21:47</time></div></header>",
+      "css": ".ds-nav { display: flex; height: 56px; align-items: center; gap: 16px; padding: 0 24px; background: rgba(10,13,17,0.95); backdrop-filter: blur(8px); border-bottom: 1px solid #232b36; } .ds-nav__brand { display: flex; flex-shrink: 0; align-items: baseline; gap: 10px; text-decoration: none; } .ds-nav__mark { background: #bb1919; padding: 2px 8px; font-family: 'Source Serif 4', Georgia, serif; font-weight: 600; font-size: 20px; line-height: 1.25; letter-spacing: -0.022em; color: #ffffff; } .ds-nav__full { font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; color: #9aa4b2; } .ds-nav__progs { display: flex; flex-shrink: 0; align-items: center; gap: 4px; margin-left: 8px; } .ds-nav__prog { border-bottom: 2px solid transparent; padding: 6px 12px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; color: #66707d; text-decoration: none; white-space: nowrap; transition: color 150ms, border-color 150ms; } .ds-nav__prog:hover { color: #f2f3f5; } .ds-nav__prog--on { border-bottom-color: #bb1919; color: #ffffff; } .ds-nav__prog:focus-visible { outline: 2px solid #fff; outline-offset: 2px; } .ds-nav__right { display: flex; margin-left: auto; flex-shrink: 0; align-items: center; gap: 12px; } .ds-nav__status { display: flex; align-items: center; gap: 8px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; color: #ffffff; } .ds-nav__clock { font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.13em; font-variant-numeric: tabular-nums; color: #9aa4b2; }"
+    },
+    {
+      "name": "Breaking Cut-In",
+      "kind": "custom",
+      "refersTo": "lower-third",
+      "description": "A transient red banner for a live event. Wipes in and dismisses itself after a TTL so the studio never accumulates stale banners.",
+      "html": "<div class=\"ds-cutin\" role=\"status\"><span class=\"ds-cutin__tag\"><span class=\"ds-lamp\" aria-hidden=\"true\"></span>Breaking</span><p class=\"ds-cutin__text\">Position filled on ECB rate cut &mdash; 64% yes<span class=\"ds-cutin__detail\">paper, simulated on Manifold</span></p></div>",
+      "css": ".ds-cutin { display: flex; align-items: center; gap: 16px; background: #bb1919; padding: 10px 28px; animation: ds-cut-in 620ms cubic-bezier(0.16,1,0.3,1) both; transform-origin: left center; } .ds-cutin__tag { display: inline-flex; flex-shrink: 0; align-items: center; gap: 8px; background: #ffffff; padding: 4px 10px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; color: #bb1919; } .ds-cutin__text { flex: 1 1 0; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.005em; color: #ffffff; } .ds-cutin__detail { margin-left: 8px; font-weight: 400; color: rgba(255,255,255,0.75); } @media (prefers-reduced-motion: reduce) { .ds-cutin { animation: none; } }"
+    },
+    {
+      "name": "Section Label",
+      "kind": "custom",
+      "refersTo": "label",
+      "description": "Names a segment of the broadcast and rules off to the right with a hairline. Never an eyebrow sitting over a heading.",
+      "html": "<div class=\"ds-seclabel\"><span class=\"ds-seclabel__text\">Tonight&rsquo;s running order &mdash; pick a story to put on air</span><span class=\"ds-seclabel__rule\"></span></div>",
+      "css": ".ds-seclabel { display: flex; align-items: center; gap: 12px; } .ds-seclabel__text { font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.13em; text-transform: uppercase; color: #9aa4b2; } .ds-seclabel__rule { flex: 1 1 0; height: 1px; background: #232b36; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Night Desk",
+    "overview": "This is a broadcast, not a dashboard. The product is an autonomous prediction-market trader, and the entire interface is built as the 24-hour news channel that covers it — a dark studio, an out-of-focus video wall throwing cold monitor light, a bull anchor camera-right, a red lower third keyed over the bottom of the shot, and a tape rolling along the foot of the screen at all times. The category default for this product is a grid of tiles with an accent colour. This world refuses that outright: the red is not an accent, it is furniture — the bar the headline sits inside, the strap under it, the tag on the tape, the cut-in that interrupts.\n\nThe density is a newsroom's: information-dense but ordered by rank, not spread evenly. Big serif headlines carry the story; everything administrative — labels, tags, statuses, buttons, timestamps — collapses into one tiny all-caps tracked Archivo voice, the chyron. That two-voice split does almost all the hierarchy work; there is very little in between. Panels are treated as lit studio monitors rather than paper cards: a slightly lighter face than the studio floor, one hairline bezel, one soft downward shadow, and a 14px corner.\n\nThe world is dark by commitment, not by theme toggle. color-scheme: dark is declared at the root and there is no light mode; a broadcast studio is a dark room with lit screens, and BBC red only reads as broadcast red against near-black. Motion is borrowed from vision mixing rather than from web animation: things cut in with a clip-path wipe, they do not fade and scale.",
+    "keyCharacteristics": [
+      "Dark studio ground (#0a0d11) with a light-only, imagery-free video-wall backdrop",
+      "BBC broadcast red as page furniture — bars, straps, cut-ins, tape tags",
+      "Source Serif 4 headlines against Archivo chyrons, with almost nothing between them",
+      "Panels as lit monitors: one bezel, one shadow, 14px corner",
+      "Square controls, round lamps: radius is semantic, not decorative",
+      "A fixed rolling ticker on every page, occupying the bottom 3.5rem",
+      "Every P&L figure visibly labelled as paper"
+    ],
+    "rules": [
+      { "name": "The Furniture Rule", "body": "Red is a surface before it is a colour. If red appears on a screen, it should be filling a bar that carries type — a lower third, a strap, a cut-in, a tape cap, a wordmark box, a button. A stray red border, red icon or red underline is a sign the world has slipped back into accent-colour thinking.", "section": "colors" },
+      { "name": "The Two-Light Rule", "body": "The studio is lit by exactly two sources: monitor blue from camera-left and broadcast red from camera-right, both as soft radial gradients at low opacity. Never introduce a third hue into the environment. Status lamps are ink, not light, and do not count.", "section": "colors" },
+      { "name": "The Paper Label Rule", "body": "Every P&L, return or performance figure is rendered adjacent to a visible paper-mode marker — an amber hold pill reading 'Paper mode · simulated on Manifold', a 'paper' word in the label itself, or both. A number that could be read as realized cash is a defect, not a style choice.", "section": "colors" },
+      { "name": "The Two-Voice Rule", "body": "Type is either a headline (Source Serif) or a chyron (uppercase tracked Archivo). Body prose is the only thing allowed in between, and it is always plain Archivo at a normal weight. There is no third display face, no semibold sans headline, and no serif label.", "section": "typography" },
+      { "name": "The Chyron Rule", "body": "If a piece of text is a label rather than a sentence, it takes .chyron — including button text. Sentence-case small text is body copy; if you find yourself wanting a 12px semibold sentence-case label, it is either a chyron or it is prose.", "section": "typography" },
+      { "name": "The Tabular Rule", "body": "Every figure carries .numeric. tnum is on globally at the body, and .numeric sets font-variant-numeric: tabular-nums on top, so prices, percentages, clocks, hashes and P&L columns never jitter as they tick.", "section": "typography" },
+      { "name": "The Tape Rule", "body": "A fixed ticker occupies the bottom 3.5rem of every page at z-40. main carries pb-14 to clear it. Nothing critical, and no primary action, may sit in that band.", "section": "layout" },
+      { "name": "The Band Rule", "body": "Sections are separated by a change of ground (bg-studio-2), a border-rule top edge, or generous vertical padding — never by a floating card with a shadow. The page is a stack of full-width bands the studio light falls across.", "section": "layout" },
+      { "name": "The One Shadow Rule", "body": "Elevation is declared once, by .monitor. Nothing else in the system casts a shadow — not buttons, not pills, not rows, not the header. A second shadow vocabulary means a card has crept in where a monitor belongs.", "section": "elevation" },
+      { "name": "The No-Glass Rule", "body": "The one backdrop-blur in the system is the sticky header (bg-studio/95 backdrop-blur), where it exists so type stays legible over scrolling content. Blur is never used as decoration, and there are no frosted panels.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do compose the on-air furniture from LowerThird, Ticker, Slug, LiveLamp, StudioClock, AnchorBull and BreakingCutIn rather than building a red bar by hand.",
+      "Do put every small label in .chyron — including button text, table headers and statuses — and every figure in .numeric.",
+      "Do use newsroom forms for page structure: running orders, rundown rows, transcript columns, straps, tables and the tape.",
+      "Do label every P&L figure as paper, with the amber hold pill or the word 'paper' in the label itself.",
+      "Do give a panel .monitor (14px, one bezel, one shadow) and let its rows supply their own padding under overflow-hidden.",
+      "Do name the action in a control's label ('Put this market on air', 'Pull the wire'), never 'Submit'.",
+      "Do ship every state — loading, empty, error, hover, focus-visible, disabled. Empty states are a serif headline plus a short dim sentence plus one primary button, centred in a monitor at px-6 py-16.",
+      "Do wrap wide tables in their own overflow-x-auto container and hold the layout down to 375px.",
+      "Do take icons from lucide-react at a single stroke weight (2 or 2.5), sized size-3 to size-4."
+    ],
+    "donts": [
+      "Don't build page structure from cards of icon-plus-heading-plus-text. That is the category default this world exists to refuse.",
+      "Don't use red as a sprinkled accent — no lone red icons, red underlines or red micro-borders. Red fills a bar that carries type.",
+      "Don't nest a monitor inside a monitor, or give anything but .monitor a shadow.",
+      "Don't add a kicker or eyebrow above a heading. Slug names a segment; it never sits over a headline as a decorative pre-title.",
+      "Don't use gradient text, glass-blur decoration, or an image or noise texture in the studio environment — the room is lit by CSS light only.",
+      "Don't use emoji or unicode glyphs as icons or as section markers. Icons are lucide SVGs; a section marker that carries no information should simply be absent.",
+      "Don't number sections 01 / 02 / 03 unless the sequence itself is the information (the Bull Pool's Hold → Trade → Draw is a legitimate use; a list of unrelated panels is not).",
+      "Don't introduce a light theme, a third display face, or a second radius value beyond 14px / 0 / round.",
+      "Don't place anything critical in the bottom 3.5rem, and don't remove main's pb-14.",
+      "Don't move the font variables off <html>; @theme inline resolves them at :root and every headline silently degrades if they move.",
+      "Don't write copy that implies realized cash, and don't write 'Arc', 'EVM', 'viem' or 'Ethereum' — the chain is Solana."
+    ]
+  }
+}

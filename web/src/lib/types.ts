@@ -41,6 +41,7 @@ export type Decision = {
 };
 
 export type OnchainTx = {
+  /** Solana transaction signature (base58). Wire name kept as `tx_hash`. */
   tx_hash: string;
   explorer_url: string;
   mocked: boolean;
@@ -55,6 +56,7 @@ export type Anchor = {
   market_id: string | null;
   kind: string;
   trace_hash: string | null;
+  /** Solana transaction signature (base58). Wire name kept as `tx_hash`. */
   tx_hash: string;
   explorer_url: string | null;
   usdc_amount: number | null;
@@ -83,20 +85,29 @@ export type AnalyzeEvent =
 
 export type Citation = { url: string; title: string; published_date: string | null };
 
-// Personal-mode: server asks the browser to sign these on-chain txns itself.
+// Personal-mode: server asks the browser to sign these Solana txns itself.
+// Address-shaped fields are optional/lenient because the backend wire contract
+// is unchanged from the EVM build — anything that isn't a valid base58 pubkey
+// falls back to the client-side Solana defaults in lib/solana.ts.
 export type AnchorRequest = {
   decision_id: number;
   market_id: string;
+  /** sha256 of the canonical reasoning trace; written via the Memo program. */
   trace_hash: string;
-  to: string; // anchor contract, or the user's own address for a self-send
-  chain_id: number;
+  /** Legacy/optional destination hint. Ignored unless a valid Solana pubkey. */
+  to?: string | null;
+  chain_id?: number | null;
 };
+
 export type SettleRequest = {
   decision_id: number;
   market_id: string;
-  treasury: string;
-  usdc_address: string;
+  /** Treasury pubkey. Falls back to NEXT_PUBLIC_SOLANA_TREASURY, then self. */
+  treasury?: string | null;
+  /** SPL mint to transfer. Prefers `mint`; `usdc_address` kept for wire compat. */
+  mint?: string | null;
+  usdc_address?: string | null;
   amount_usdc: number;
-  decimals: number;
-  chain_id: number;
+  decimals?: number | null;
+  chain_id?: number | null;
 };

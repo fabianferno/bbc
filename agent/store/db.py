@@ -37,7 +37,7 @@ def get_client() -> MongoClient:
 
 @contextmanager
 def connect() -> Iterator[Database]:
-    """Yield the shared `openmind` database handle. Client is pooled, not closed."""
+    """Yield the shared BBC MongoDB database handle. Client is pooled, not closed."""
     yield get_client()[settings.mongo_db_name]
 
 

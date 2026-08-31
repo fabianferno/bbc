@@ -1,5 +1,12 @@
 # SQLite → MongoDB Migration Implementation Plan
 
+> **Historical document.** Written before the project was renamed to **BBC — the Bull
+> Broadcasting Corporation** ($BBC on Solana, built for The AnsemHack). Names like
+> `openclob` / `openmind` and references to the Arc/EVM chain layer are preserved here as
+> a record of the decisions taken at the time. For current truth see `PRODUCT.md`,
+> `README.md` and `CLAUDE.md`.
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace SQLite with MongoDB (Atlas, db `openmind`) as openclob's persistence layer, migrate all existing data losslessly, verify, then remove SQLite.

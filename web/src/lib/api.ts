@@ -72,17 +72,27 @@ export type AnchorRecord = {
 
 import type { Anchor, GraphEdge, GraphNode, Market, Ontology, OnchainTx } from "./types";
 
+export type ChainHealth = {
+  network: string;
+  cluster: string;
+  real: boolean;
+  rpc_url: string;
+  rpc_ok: boolean;
+  address: string | null;
+  sol_balance: number | null;
+  usdc_balance: number | null;
+  mint: string | null;
+  bbc_mint_configured: boolean;
+  explorer: string;
+};
+
 export type HealthResp = {
   ok: boolean;
   mode: string;
   model: string;
-  arc: {
-    real: boolean;
-    chain_id: number;
-    address: string | null;
-    usdc_balance: number | null;
-    explorer: string;
-  };
+  chain: ChainHealth;
+  /** @deprecated alias of `chain`, emitted for one release. Read `chain`. */
+  arc?: ChainHealth;
 };
 export type MarketsResp = { markets: Market[]; seeds: string[] };
 export type TraceResp = {

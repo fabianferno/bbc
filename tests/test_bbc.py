@@ -1,4 +1,4 @@
-"""Tests for openmind additions: GraphRAG validators, trace hashing, Arc mock fallback."""
+"""Tests for BBC additions: GraphRAG validators, trace hashing, on-chain mock fallback."""
 
 from __future__ import annotations
 
@@ -89,15 +89,44 @@ def test_trace_hash_is_deterministic_and_order_independent():
     assert h1 == h2 and h1.startswith("0x") and len(h1) == 66
 
 
-def test_arc_client_mock_when_disabled(monkeypatch):
+def test_solana_client_mock_when_disabled(monkeypatch):
     from agent.config import settings
-    from agent.onchain.arc import ArcClient
+    from agent.onchain.solana import SolanaClient
 
-    monkeypatch.setattr(settings, "arc_enabled", False)
-    c = ArcClient()
+    monkeypatch.setattr(settings, "solana_enabled", False)
+    c = SolanaClient()
     assert c.real is False
     res = c.anchor("0x" + "ab" * 32)
     assert res["mocked"] is True
-    assert res["tx_hash"].startswith("0x")
-    settle = c.transfer_usdc("0x" + "1" * 40, 0.01)
+    assert res["kind"] == "anchor"
+    assert res["memo"] == "bbc:trace:" + "ab" * 32
+    # base58 signature, not a 0x hex hash
+    assert not res["tx_hash"].startswith("0x")
+    assert res["explorer_url"].endswith("?cluster=devnet")
+    settle = c.transfer_usdc("11111111111111111111111111111111", 0.01)
     assert settle["mocked"] is True
+    assert settle["mint"] == settings.usdc_mint_address
+
+
+def test_explorer_url_appends_cluster_only_off_mainnet():
+    from agent.onchain import explorer_tx_url
+
+    assert explorer_tx_url("sig", cluster="devnet") == (
+        "https://explorer.solana.com/tx/sig?cluster=devnet"
+    )
+    assert explorer_tx_url("sig", cluster="mainnet-beta") == (
+        "https://explorer.solana.com/tx/sig"
+    )
+
+
+def test_health_reports_solana_shape():
+    from fastapi.testclient import TestClient
+
+    from agent.api.server import app
+
+    body = TestClient(app).get("/api/health").json()
+    chain = body["chain"]
+    assert chain["cluster"] == "devnet"
+    assert "chain_id" not in chain
+    assert set(("network", "rpc_ok", "address", "sol_balance", "bbc_mint_configured")) <= set(chain)
+    assert body["arc"] == chain  # deprecated alias kept for the frontend

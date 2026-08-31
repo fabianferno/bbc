@@ -1,60 +1,64 @@
 "use client";
 
 import { useCallback } from "react";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 
 /**
- * Build-time constant: whether Privy is configured. Because it's inlined at
- * build and never changes between renders, branching on it before the Privy
- * hooks keeps the rules-of-hooks invariant (the branch is stable for the app's
- * whole life) while letting the app run ungated if the key is missing.
+ * Solana wallet connection is always available (the adapter needs no API key),
+ * so this is a constant `true`. Kept as an exported flag because the UI still
+ * branches on "is wallet auth wired up at all".
  */
-export const HAS_PRIVY = Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID);
+export const HAS_WALLET_AUTH = true;
 
 export type Auth = {
+  /** Adapter has finished restoring any prior connection. */
   ready: boolean;
+  /** A wallet is connected. */
   authenticated: boolean;
-  hasPrivy: boolean;
+  /** Wallet auth is configured (always true on Solana). */
+  hasWallet: boolean;
+  /** Base58 public key of the connected wallet. */
   address: string | null;
+  /** Open the wallet-selection modal. */
   login: () => void;
+  /** Disconnect the wallet. */
   logout: () => void;
 };
 
 export function useAuth(): Auth {
-  if (!HAS_PRIVY) {
-    return {
-      ready: true,
-      authenticated: false,
-      hasPrivy: false,
-      address: null,
-      login: () => {},
-      logout: () => {},
-    };
-  }
-  /* eslint-disable react-hooks/rules-of-hooks */
-  const { ready, authenticated, user, login, logout } = usePrivy();
-  const { wallets } = useWallets();
-  /* eslint-enable react-hooks/rules-of-hooks */
-  const embedded =
-    wallets.find((w) => w.walletClientType === "privy") ?? wallets[0];
-  const address = embedded?.address ?? user?.wallet?.address ?? null;
-  return { ready, authenticated, hasPrivy: true, address, login, logout };
+  const { connected, connecting, publicKey, disconnect } = useWallet();
+  const { setVisible } = useWalletModal();
+
+  const login = useCallback(() => setVisible(true), [setVisible]);
+  const logout = useCallback(() => {
+    void disconnect().catch(() => {});
+  }, [disconnect]);
+
+  return {
+    ready: !connecting,
+    authenticated: connected && publicKey != null,
+    hasWallet: HAS_WALLET_AUTH,
+    address: publicKey?.toBase58() ?? null,
+    login,
+    logout,
+  };
 }
 
 /**
- * Returns a wrapper that runs `fn` only when the user is logged in, otherwise
- * opening the Privy login modal. Used to gate action buttons (discover, run).
+ * Returns a wrapper that runs `fn` only when a wallet is connected, otherwise
+ * opening the wallet modal. Used to gate action buttons (discover, run).
  */
 export function useRequireAuth() {
-  const { authenticated, login, hasPrivy } = useAuth();
+  const { authenticated, login } = useAuth();
   return useCallback(
     (fn: () => void) => {
-      if (hasPrivy && !authenticated) {
+      if (!authenticated) {
         login();
         return;
       }
       fn();
     },
-    [authenticated, login, hasPrivy],
+    [authenticated, login],
   );
 }

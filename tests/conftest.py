@@ -11,9 +11,9 @@ import tempfile
 from pathlib import Path
 
 # ---- env setup (runs before any agent imports) ----
-_TMP = Path(tempfile.mkdtemp(prefix="openclob-test-"))
+_TMP = Path(tempfile.mkdtemp(prefix="bbc-test-"))
 os.environ["MONGO_DB_URL"] = "mongodb://localhost:27017"
-os.environ["MONGO_DB_NAME"] = "openclob_test"
+os.environ["MONGO_DB_NAME"] = "bbc_test"
 os.environ["AGENT_LOG_PATH"] = str(_TMP / "test.jsonl")
 os.environ.setdefault("AGENT_MODE", "paper")
 os.environ.setdefault("AGENT_BANKROLL", "50")
@@ -33,7 +33,7 @@ def _mongo(monkeypatch):
     monkeypatch.setattr(db, "_client", client)
     db.init_db()
     yield
-    client.drop_database("openclob_test")
+    client.drop_database("bbc_test")
 
 
 @pytest.fixture

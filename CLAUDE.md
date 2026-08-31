@@ -4,7 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-`openclob` — autonomous prediction-market trading agent (Polymarket + Manifold) driven by an LLM reasoning loop (Claude via AWS Bedrock) and Tavily search. Phased build: backtest → paper (Manifold) → dryrun (Polymarket, no orders sent) → live. Phase transitions are gated by pre-committed metrics in `prd.md` §3 (Brier, ECE, ROI, sample size, leakage check). Read `prd.md` before non-trivial design changes — it is the source of truth for what the system is supposed to do and why.
+`bbc` — **BBC, the Bull Broadcasting Corporation**: an autonomous prediction-market trading agent (Polymarket + Manifold) that reports its own reasoning, positions and P&L as a live news broadcast. It is driven by an LLM reasoning loop (Claude/Nova via AWS Bedrock) and Tavily search, with a GraphRAG layer (`agent/graphrag/`) that builds a per-market entity graph feeding the forecast, and an on-chain layer (`agent/onchain/`) that anchors each reasoning trace on **Solana** (memo/anchor transaction). The token is **$BBC** on Solana, launched via ClawPump for The AnsemHack — see `PRODUCT.md` for product truth and `hackathon.md` for competition rules.
+
+Phased build: backtest → paper (Manifold) → dryrun (Polymarket, no orders sent) → live. Phase transitions are gated by pre-committed metrics in `prd.md` §3 (Brier, ECE, ROI, sample size, leakage check). Read `prd.md` before non-trivial design changes — it is the source of truth for what the system is supposed to do and why.
+
+**Naming:** the distribution name and console script are `bbc`; the Python package directory stays `agent/`, so every import is unchanged (`from agent... import ...`). Do not rename the package.
+
+**Phase honesty:** the shipped alpha runs in `paper` mode (Manifold play-money). Never describe paper P&L as realized cash — in code, log lines, UI copy, or docs. Any performance figure must carry the mode that produced it.
 
 ## Setup & commands
 
@@ -30,7 +36,7 @@ python -m agent block <pattern>
 python -m agent trip-breaker <reason> | reset-breaker
 ```
 
-The CLI is also installed as the `openclob` console script. Mode is set by `AGENT_MODE` env var (`backtest|paper|dryrun|live`); `paper` uses Manifold, the other live-ish modes use Polymarket.
+The CLI is also installed as the `bbc` console script. Mode is set by `AGENT_MODE` env var (`backtest|paper|dryrun|live`); `paper` uses Manifold, the other live-ish modes use Polymarket.
 
 Dev:
 

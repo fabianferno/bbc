@@ -18,7 +18,7 @@ from typing import Any
 
 from agent.config import settings
 from agent.logging import get_logger
-from agent.onchain import build_trace, canonical, get_arc, trace_hash
+from agent.onchain import build_trace, canonical, get_solana, trace_hash
 from agent.store import db
 from agent.strategy import entry as entry_mod
 
@@ -78,7 +78,7 @@ def run_analysis(
     `settle_request` / `anchor_request` so the browser can sign with the user's own
     Privy wallet, then report the tx hashes back via POST /api/anchors/record.
     """
-    arc = get_arc()
+    sol = get_solana()
     personal = mode == "personal" and bool(signer)
     emit("market", _market_summary(market))
 
@@ -139,33 +139,35 @@ def run_analysis(
             # hand the symbolic settle to the browser to sign with the user's wallet
             emit("settle_request", {
                 "decision_id": plan.decision_id, "market_id": market["id"],
-                "treasury": settings.arc_treasury_address or signer,
-                "usdc_address": settings.arc_usdc_address,
-                "amount_usdc": settings.arc_settle_usdc, "decimals": 6,
-                "chain_id": settings.arc_chain_id,
+                "treasury": settings.solana_treasury_address or signer,
+                "mint": sol.mint, "decimals": 6,
+                "amount_usdc": settings.solana_settle_usdc,
+                "cluster": settings.solana_cluster,
             })
         else:
-            settled = arc.transfer_usdc(
-                arc.treasury(), settings.arc_settle_usdc, decision_id=plan.decision_id
+            settled = sol.transfer_usdc(
+                sol.treasury(), settings.solana_settle_usdc, decision_id=plan.decision_id
             )
             with db.connect() as conn:
                 db.record_anchor(conn, {
                     "decision_id": plan.decision_id, "market_id": market["id"], "kind": "settle",
                     "tx_hash": settled["tx_hash"], "explorer_url": settled.get("explorer_url"),
-                    "usdc_amount": settings.arc_settle_usdc, "to_address": settled.get("to"),
+                    "usdc_amount": settings.solana_settle_usdc, "to_address": settled.get("to"),
                     "mocked": settled.get("mocked"),
                 })
-            emit("settled", {**settled, "usdc_amount": settings.arc_settle_usdc})
+            emit("settled", {**settled, "usdc_amount": settings.solana_settle_usdc})
 
-    # anchor the reasoning-trace hash on Arc (always — the reasoning is the product)
+    # anchor the reasoning-trace hash on Solana (always — the reasoning is the product)
     anchor = None
     if personal:
         emit("anchor_request", {
             "decision_id": plan.decision_id, "market_id": market["id"], "trace_hash": thash,
-            "to": settings.arc_anchor_contract or signer, "chain_id": settings.arc_chain_id,
+            "memo_program": settings.solana_memo_program,
+            "memo": f"bbc:trace:{thash[2:] if thash.startswith('0x') else thash}",
+            "cluster": settings.solana_cluster,
         })
     else:
-        anchor = arc.anchor(thash, decision_id=plan.decision_id)
+        anchor = sol.anchor(thash, decision_id=plan.decision_id)
         with db.connect() as conn:
             db.record_anchor(conn, {
                 "decision_id": plan.decision_id, "market_id": market["id"], "kind": "anchor",

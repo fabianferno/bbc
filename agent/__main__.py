@@ -23,7 +23,7 @@ from agent.logging import setup_logging
 
 @click.group()
 def cli() -> None:
-    """openclob — autonomous prediction-market agent."""
+    """BBC — the Bull Broadcasting Corporation: the autonomous trader that reports its own trades."""
     setup_logging()
 
 

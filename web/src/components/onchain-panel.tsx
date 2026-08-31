@@ -2,6 +2,8 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { ArrowRight, ExternalLink } from "lucide-react";
+import { HAS_BBC_MINT, explorerTxUrl } from "@/lib/solana";
 import type { OnchainTx } from "@/lib/types";
 import { truncHash } from "@/lib/utils";
 import { Pill, SectionLabel } from "./ui";
@@ -11,25 +13,26 @@ function TxRow({ label, tx, sub }: { label: string; tx: OnchainTx; sub?: string 
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex items-center justify-between border border-line bg-bg-elev px-3 py-2.5"
+      className="flex items-center justify-between gap-3 border border-rule bg-desk px-3 py-2.5"
     >
-      <div>
-        <div className="label mb-0.5 flex items-center gap-2">
+      <div className="min-w-0">
+        <div className="chyron mb-1 flex items-center gap-2 text-dim">
           {label}
-          {tx.mocked ? <Pill tone="amber">mock</Pill> : <Pill tone="signal">on-chain</Pill>}
+          {tx.mocked ? <Pill tone="monitor">Simulated</Pill> : <Pill tone="up">On chain</Pill>}
         </div>
-        <div className="mono text-[12px] text-text">
+        <div className="numeric truncate text-[12px] text-ink">
           {truncHash(tx.tx_hash, 8)}
           {sub && <span className="ml-2 text-faint">{sub}</span>}
         </div>
       </div>
       <a
-        href={tx.explorer_url}
+        href={tx.explorer_url || explorerTxUrl(tx.tx_hash)}
         target="_blank"
         rel="noreferrer"
-        className="mono text-[10px] uppercase tracking-[0.12em] text-faint transition-colors hover:text-signal"
+        className="chyron inline-flex shrink-0 items-center gap-1.5 text-faint transition-colors hover:text-white"
       >
-        arcscan ↗
+        Explorer
+        <ExternalLink className="size-3" strokeWidth={2} aria-hidden />
       </a>
     </motion.div>
   );
@@ -47,44 +50,50 @@ export function OnchainPanel({
   active: boolean;
 }) {
   return (
-    <div className="panel p-4">
-      <SectionLabel index="04">Settlement · Arc</SectionLabel>
+    <div className="monitor p-4">
+      <SectionLabel>Settlement · Solana devnet</SectionLabel>
 
       <div className="mt-4 space-y-2">
         {settled && (
           <TxRow
-            label="USDC settled"
+            label={HAS_BBC_MINT ? "$BBC settled" : "USDC settled"}
             tx={settled}
-            sub={settled.usdc_amount ? `${settled.usdc_amount} USDC` : undefined}
+            sub={
+              settled.usdc_amount
+                ? `${settled.usdc_amount} ${HAS_BBC_MINT ? "$BBC" : "USDC"}`
+                : undefined
+            }
           />
         )}
         {anchored ? (
           <TxRow label="Trace anchored" tx={anchored} />
         ) : active ? (
-          <div className="flex items-center gap-2 border border-line bg-bg-elev px-3 py-2.5">
-            <span className="signal-dot inline-block size-1.5 rounded-full bg-signal" />
-            <span className="mono text-[11px] uppercase tracking-[0.12em] text-signal">
-              anchoring reasoning trace…
-            </span>
+          <div className="flex items-center gap-2 border border-rule bg-desk px-3 py-2.5">
+            <span className="lamp" aria-hidden />
+            <span className="chyron text-red-bright">Anchoring the trace…</span>
           </div>
         ) : (
-          <p className="mono text-[11px] leading-relaxed text-faint">
-            The full reasoning trace is hashed and anchored on Arc; a symbolic USDC stake is
-            settled. Every decision becomes independently verifiable.
+          <p className="text-[12px] leading-relaxed text-dim">
+            Every decision&rsquo;s full reasoning trace is hashed and written to
+            Solana devnet through the Memo program, alongside a symbolic SPL
+            settlement. Anyone can check the record for themselves.
           </p>
         )}
       </div>
 
       {anchored?.trace_hash && (
-        <div className="mt-3 border-t border-line pt-3">
-          <div className="label mb-1">Trace hash (sha256)</div>
-          <div className="mono break-all text-[11px] text-cyan">{anchored.trace_hash}</div>
+        <div className="mt-3 border-t border-rule pt-3">
+          <div className="chyron mb-1.5 text-faint">Trace hash · SHA-256</div>
+          <div className="numeric break-all text-[11px] text-monitor">
+            {anchored.trace_hash}
+          </div>
           {decisionId != null && (
             <Link
               href={`/verify/${decisionId}`}
-              className="mono mt-3 inline-flex items-center gap-2 border border-signal/40 bg-signal/5 px-3 py-1.5 text-[11px] uppercase tracking-[0.12em] text-signal transition-colors hover:bg-signal/10"
+              className="chyron mt-3 inline-flex items-center gap-2 border border-rule-lit px-3 py-1.5 text-ink transition-colors hover:border-red hover:text-white"
             >
-              Verify trace →
+              Check the trace
+              <ArrowRight className="size-3" strokeWidth={2} aria-hidden />
             </Link>
           )}
         </div>

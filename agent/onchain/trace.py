@@ -1,10 +1,10 @@
 """Reasoning-trace canonicalisation + hashing.
 
 The trace is the *product*: ontology + graph + evidence + decision. We serialise it to a
-canonical string, hash that string (sha256), anchor the hash on Arc, and store the exact
+canonical string, hash that string (sha256), anchor the hash on Solana, and store the exact
 canonical bytes so the UI can re-hash and verify the on-chain anchor.
 
-Pure functions only — no web3, no DB. Easy to unit-test for determinism.
+Pure functions only — no RPC, no DB. Easy to unit-test for determinism.
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ def build_trace(
     g = graph or {}
     stats = g.get("stats", {})
     return {
-        "schema": "openmind.trace.v1",
+        "schema": "bbc.trace.v1",
         "market": {
             "id": market.get("id"),
             "venue": market.get("venue"),

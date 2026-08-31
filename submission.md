@@ -1,113 +1,178 @@
-# openmind — Hackathon Submission
+# BBC — AnsemHack Submission
 
-**The prediction-market agent that shows its work — and proves it on-chain.**
+**The Bull Broadcasting Corporation. The autonomous trader that reports its own trades.**
 
-- **Live app:** https://openthemind.vercel.app
-- **Repo:** https://github.com/fabianferno/openclob
-- **Track:** Agora Agents Hackathon (Canteen × Circle) — RFB 02 *Prediction Market Trader Intelligence* + research angle #1 *"reasoning traces as the product, anchored on Arc."*
-
----
-
-## Problem Statement*
-
-> *What problem is your project solving? What is compelling about this problem?*
-
-AI trading agents are black boxes. They emit a number — "bet YES at 62%" — and ask you to trust it. On prediction markets that's fatal, because the edge doesn't come from price action; it comes from **synthesis of messy public information**. You can't trust — or improve — reasoning you can't inspect, and nothing today ties an agent's *claimed* reasoning to the trade it actually placed. A confident number is indistinguishable from a hallucinated one.
-
-What's compelling is that prediction markets are the cleanest possible testbed for verifiable machine reasoning: every market resolves to a ground truth, so a reasoning trace is either calibrated or it isn't — there's no hiding. If you can make an agent's *thinking* a first-class, auditable, tamper-evident artifact, you turn "trust me" into "verify me." That's the difference between a random polymarket trading agent on twitter and an accountable autonomous system — and it's a primitive that matters far beyond trading (any agent that takes consequential actions should be able to prove *why*).
+- **Project:** BBC — the Bull Broadcasting Corporation
+- **Ticker:** **$BBC** (Solana, launched on ClawPump)
+- **Repo:** https://github.com/fabianferno/bbc
+- **Hackathon:** The AnsemHack / The Clawrena — ClawPump × pump.fun, Solana, 19 Aug – 1 Oct 2026
+- **Tracks:** **ClawPump × pump.fun** (builder + trader, primary) · **Inference Markets / UsePod**
+  (secondary). Both judge the same tokenized project, so they stack.
+- **Deadline discipline:** registered and **tokenized by Sat 19 September 2026**.
 
 ---
 
-## Project Description*
+## One line (280 chars, for the registration form)
 
-> *Describe what your project does, how it works, and what tech you used.*
-
-openmind makes the reasoning the product, not the number. For each prediction market it:
-
-1. Builds a knowledge graph (GraphRAG). It designs a custom ontology—the entity and relationship types that matter for this market—then extracts an entity knowledge graph from date-bounded news. A temporal_guard drops any source published after the market's reasoning cutoff, so backtests and live runs can't cheat with hindsight. The graph summary is added to the forecast prompt and directly drives the decision; remove it, and the decision changes.
-2. Decides like a calibrated trader. It estimates probability of YES, computes the edge versus market price, sizes the trade using fractional Kelly (per-category calibration), and executes—constrained by hard circuit breakers that the language model cannot bypass (such as daily loss cap, max open positions, per-market cap, slippage guard).
-3. Proves it on Arc. It makes the full reasoning trace (ontology, graph, evidence, decision) canonical, hashes it (sha256), anchors the hash on Arc, and settles a symbolic USDC stake. Anyone can re-hash the trace in their browser at /verify/<id> and confirm it matches the chain—a glass box, not a black box.
-4. Lets users sign it themselves. A header toggle switches between demo mode (server wallet signs) and personal mode. In personal mode, users log in, get an embedded wallet on Arc (Privy, no seed phrase), top up from the Circle USDC faucet, and sign the anchor and USDC settlement from their own wallet in-browser. Gas is paid in USDC; the server never holds the user's key.
-
-How it works (pipeline): discovery → cheap filters → ambiguity check → date-bounded Tavily search (with temporal guard) → GraphRAG (ontology, entities, graph) → graph-augmented reasoning → calibrated Kelly sizing → paper/dry-run execution → on-chain anchor and USDC settlement on Arc. It runs fully autonomously via /api/auto or agent cycle/loop—no human picks the markets.
-
-Tech: Python swarm inference engine (openclob) with Amazon Nova Lite via AWS Bedrock for reasoning (about $0.015 per full analysis, about $0.008 per decision), Tavily for date-bounded search, FastAPI sidecar streaming the live build over server-sent events (SSE), web3.py to Arc testnet (EVM, chain id 5042002, gas in USDC), SQLite and MongoDB for graph runs, trace blobs, and on-chain anchors. The frontend is Next.js, Tailwind, and shadcn-style components (Terminal, Reasoning Room, Verify, Ledger). Personal mode uses Privy embedded wallets and the Circle faucet, with a client-signed ERC-20 USDC settlement.
+> BBC is an autonomous prediction-market trading agent that broadcasts its own reasoning,
+> positions and P&L as a live news channel — a bull in a suit reading out every trade, with each
+> reasoning trace anchored on Solana so anyone can verify the call.
 
 ---
 
-## Traction*
+## Problem
 
-> *How many real people have tried the product? How much validation from end users? RTs / follows / stars too =)*
+AI trading agents are black boxes, and the few that publish their thinking publish it in a format
+nobody reads. You get a number — "bet YES at 62%" — and an implicit ask to trust it. On prediction
+markets that is fatal, because the edge does not come from price action; it comes from **synthesis
+of messy public information**. Reasoning you cannot inspect is reasoning you cannot trust or
+improve, and nothing ties an agent's *claimed* reasoning to the trade it actually placed. A
+confident number is indistinguishable from a hallucinated one.
 
-We're honest here: this is a final-window build, so our traction is **real on-chain volume, not an organic user base** — and every number is independently verifiable, not a screenshot.
+Prediction markets are the cleanest testbed for verifiable machine reasoning: every market resolves
+to ground truth, so a reasoning trace is either calibrated or it isn't. There is nowhere to hide.
+Make an agent's thinking a first-class, auditable, tamper-evident artifact and "trust me" becomes
+"verify me" — a primitive that matters far beyond trading.
 
-40 real Arc testnet transactions produced by the agent during the hackathon: 30 reasoning-trace anchors and 10 USDC settlements (about 0.10 USDC total), across 26 distinct markets and 30 autonomous decisions. The full list with arcscan links is in TRACTION.md. Agent wallet: 0x5a09e3eC3EFDD91205Cbb097142a4f4dCEFc7f02.
-
-Total LLM spend to produce all of it: $0.25 (Amazon Nova).
-
-There is a live deployed app at https://openthemind.vercel.app and a public repo which anyone can run end-to-end. Running "python -m tools.traction_run 25" reproduces real Arc transactions.
-
-Personal mode turns judges and visitors into the traction: anyone can log in, get an embedded Arc wallet, fund from the Circle faucet, and produce their own verifiable on-chain decision, which is attributed to them in the ledger.
-
-What we don't have yet: a real external user base or wagered volume, and we won't dress up agent-generated activity as organic growth. The path to organic traction is concrete: agent-as-builder USDC fees on recommended fills, a public "verified reasoning" feed, and markets on which reasoning patterns convert to profit.
-
-*(Social: please fill in current GitHub stars / RTs / follows at submission time — e.g. "⭐ N stars, M RTs on the demo thread.")*
-
----
-
-## Arc OSS — Why choose us / what primitives we expose
-
-> *Why should we choose your project for Arc OSS? What primitives are you exposing that other builders could find useful? Compared to the existing Arc builder code (mostly `circlefin/arc-*`), what tools and flows do you add?*
-
-Most Arc example code shows payments and transfers. openmind adds a different, reusable primitive: verifiable agent-reasoning anchored on Arc, settled in USDC. This turns Arc into a proof-of-reasoning layer, not just a payment rail. The reason Arc is needed is economic: anchoring an entire reasoning trace costs about $0.01 in USDC thanks to sub-cent fees, instant finality, and gas paid in USDC. On a typical L1, anchoring would cost more than the trade itself, so the whole "prove every decision" pattern only makes sense on Arc.
-
-Primitives we expose (usable as drop-in tools for other builders):
-
-- agent/onchain/trace.py — canonical trace and hash, implemented as pure functions with no web3 or database dependencies. build_trace(), canonical(), and trace_hash() take any structured agent output and produce deterministic canonical bytes and a sha256 hash. Any agent can reuse these for tamper-evident, re-hashable output, not just trading agents.
-- agent/onchain/arc.py — ArcClient, based on web3.py. This is a minimal Arc client that exposes two core operations: anchor(hash), which writes a 32-byte hash as transaction calldata, and transfer_usdc(to, amount), which settles on ERC-20 USDC with 6-decimal handling built in. It also supports usdc_balance(). The client degrades gracefully to clearly-flagged mock transactions when ARC_ENABLED is false, the key is missing, or RPC fails, so demos and CI never get blocked by faucet or RPC errors. This mock-fallback pattern is itself a useful ergonomic for Arc-based builders.
-- Client-side verify flow. GET /api/trace/{id} returns the exact canonical bytes and on-chain anchors; the browser re-hashes and compares to the chain at /verify/<id>. This is a copy-pasteable pattern for proving an off-chain artifact matches an on-chain anchor.
-- Bring-your-own-wallet agent flow. In personal mode, a user gets an embedded wallet on Arc (using Privy), onboards through the Circle USDC faucet, and signs the anchor and ERC-20 USDC settlement themselves. Gas is in USDC and there is no custody. This is a complete reference for letting a user, instead of the server key, sign an agent's on-chain action.
-
-The flows we add beyond circlefin/arc-* are: (1) hash-anchoring arbitrary agent output as a first-class action; (2) an off-chain to on-chain verification round-trip; (3) a mock-or-real Arc client that keeps non-funded environments working; (4) a faucet-onboarded, user-signed settlement flow wired to an embedded wallet. Honest note: embedded wallets are implemented via Privy for fastest shipping during the hackathon window, not the Circle Wallets SDK—using the SDK would be a drop-in next step, and USYC treasury yield is a documented future stretch.
+The second problem is attention. Agent projects have to buy an audience. An agent that narrates
+itself produces one as a by-product of operating.
 
 ---
 
-## Circle / Arc Feedback
+## What we built
 
-What worked
+BBC makes the reasoning the product and the broadcast the interface. For each prediction market it:
 
-- Gas paid in USDC, with sub-cent transaction fees and instant finality, made a huge difference for us. We were only able to anchor every reasoning trace because Arc's fee model makes it economically viable—it's the clearest thing Arc enables that we couldn't do elsewhere. Not having to deal with a separate gas token made onboarding dramatically easier.
-- EVM compatibility meant we could use `web3.py` immediately and without issues. Our `ArcClient` is a simple wrapper; using the standard ERC-20 ABI for USDC and regular transaction construction meant almost no learning curve for anyone already familiar with EVM chains.
-- The Circle faucet on Arc Testnet (faucet.circle.com) made onboarding straightforward: just select the chain, fund the wallet, and you're done. This enables a seamless personal mode demo for anyone.
-- arcscan gave our traction real credibility. Having a link to a verifiable transaction for each decision lets judges check the validity themselves, rather than taking our word for it.
+1. **Builds a knowledge graph (GraphRAG).** It designs a custom ontology — the entity and
+   relationship types that matter for *this* market — then extracts an entity knowledge graph from
+   date-bounded news. A `temporal_guard` drops any source published after the market's reasoning
+   cutoff, so backtests and live runs cannot cheat with hindsight. The graph summary is injected
+   into the forecast prompt and drives the decision; remove it and the decision changes.
+2. **Decides like a calibrated trader.** It estimates P(YES), computes edge versus market price,
+   sizes with fractional Kelly under per-category calibration, and executes — constrained by hard
+   circuit breakers the language model cannot bypass (daily loss cap, max open positions,
+   per-market cap, slippage guard, API-failure cooldown, manual trip).
+3. **Reports it.** Every stage — discovery, evidence, probability, entry, exit, settlement — is
+   emitted as a broadcast segment with a headline, a lower third and a ticker line. The reasoning
+   trace is the script. The anchor is a bull in a suit; the newsroom is the dashboard.
+4. **Proves it on Solana.** It canonicalises the full trace (ontology, graph, evidence, decision),
+   hashes it (sha256), and anchors the hash in a Solana memo transaction. Anyone can re-hash the
+   trace in their browser at `/verify/<id>` and confirm it matches the chain.
 
-Where Circle / Arc can improve
+**Pipeline:** discovery → cheap filters → ambiguity check → date-bounded Tavily search (temporal
+guard) → GraphRAG (ontology → entities → graph) → graph-augmented reasoning → calibrated Kelly
+sizing → execution → Solana anchor. It runs fully autonomously (`agent cycle` / `agent loop`) — no
+human picks the markets.
 
-- Onboarding into Circle Wallets was slower than we hoped. We ended up using Privy because we could deploy embedded wallets faster in the hackathon timeframe. A clear, ready-to-go quickstart or Next.js demo for Circle Wallets (letting users log in, set up a wallet, and send their first USDC transaction in minutes) would make a big difference. The main friction was the user signing from their own Circle wallet, not the chain itself.
-- It's hard to find canonical example repos that show more advanced use cases. The `circlefin/arc-*` repositories mostly cover payments and transfers. An example of anchoring arbitrary calldata or hashes (and how to verify them off-chain and on-chain) would have saved us quite a bit of trial and error figuring out the transaction format.
-- Reliability of the testnet RPC could improve, especially when sending multiple transactions at once. We encountered a nonce race during our concurrent runs (though our mock fallback handled it gracefully). Clearer guidance about nonce management and any rate limits would help builders running agent-like workloads with many transactions.
-- More documentation for USYC and treasury-yield options would help. We wanted to use idle USDC for yield, but couldn't find a straightforward way to do so within the hackathon window, so we left it as a future enhancement. A simple builder guide or recipe for "how to earn yield on idle USDC" would be very useful.
-
----
-
-## General Feedback
-
-> *What worked well? What didn't? What could the Canteen team improve for future hackathons?*
-
-What worked well
-
-- The RFB framing and research angle prompts were clear and inspiring. The idea of "reasoning traces as the product, anchored on Arc" provided a strong, specific direction while still leaving room for creativity. This was much more effective than a generic "build on X" assignment.
-- Judges who really understood repos and prioritized agency and traction set the right tone for the hackathon. This pushed us to build a real, functioning system with actual safeguards—instead of mere mockups or slideware—and to be transparent about what was fully developed vs. still in progress.
-- Having a clear pairing between Canteen and Circle, with a specific chain to target, kept the scope focused and actionable.
-
-What was harder or could be improved
-
-- Achieving visible traction is naturally difficult for projects built in the short final window, especially when the rubric places so much weight (30%) on it. It might be better to also recognize verifiable on-chain activity or a reproducible automated pipeline as meaningful traction, rather than expecting organic user growth in 48 hours—which may lead some teams to inflate their stats.
-- Earlier and clearer sponsor tooling quickstarts would help. A short, direct "golden path" for each sponsor (outlining the key SDKs and a working example snippet) at kickoff would allow teams to spend more time on product and less time figuring out libraries and dependencies.
-- Setting expectations for reporting or traction-logging up front (like a standard arc-canteen update convention) would be valuable. We only learned about the cadence late, and knowing earlier would have made tracking and reporting traction a smoother process.
-
-Overall, this was a very well-organized hackathon that encouraged building real products, not just demos. Thank you.
+**Stack:** Python agent engine; **Amazon Nova Lite via AWS Bedrock** for reasoning (~$0.015 per
+full analysis, ~$0.008 per decision); Tavily for date-bounded search; a FastAPI sidecar streaming
+each live build over SSE; MongoDB for graph runs, trace blobs and on-chain anchors; Solana for
+trace anchoring and the $BBC mint; Next.js + Tailwind for the broadcast front end (Terminal,
+Reasoning Room, Verify, Ledger).
 
 ---
 
-*Built on [`openclob`](./prd.md) — a phased autonomous prediction-market trading engine (backtest → paper → dryrun → live), gated on Brier/ECE/ROI before real money. See [`pitch.md`](./pitch.md) and [`TRACTION.md`](./TRACTION.md) for the full story and verifiable numbers.*
+## Phase honesty — what is actually running
+
+| Phase | What is real |
+|---|---|
+| `backtest` | replay of cached resolved markets |
+| `paper` | Manifold play-money trades — **this is the testnet alpha** |
+| `dryrun` | Polymarket orders signed, never submitted |
+| `live` | real orders |
+
+**The testnet alpha runs in `paper` mode: the agent places paper trades on Manifold.** Every
+performance figure in the UI is labeled with the mode that produced it. **Paper P&L is not realized
+cash and is never presented as such.** Graduation between phases is gated on pre-committed metrics
+in `prd.md` §3 — Brier score, ECE, ROI, minimum sample size and a passing leakage check — written
+down in advance precisely so they cannot be moved to fit a result.
+
+---
+
+## Token utility — $BBC
+
+**1 · Access to the live feed.** Holding $BBC unlocks the agent's live reasoning feed and its open
+position book in real time — the raw wire, ahead of the delayed public broadcast. Everyone can
+watch BBC; holders watch it as it is written.
+
+**2 · The Bull Pool.** A share of the agent's trading proceeds accumulates into a prize pool. On
+each payout round the pool is distributed to **randomly drawn $BBC holders, weighted by holding**.
+This is a pool-together structure, not a lottery you buy into: **nobody's principal is ever at
+risk** — you keep every token you hold, the agent's edge is the yield, and holding more only
+changes your odds of being drawn. Draws execute on-chain and are independently verifiable, on the
+same principle as the reasoning anchors. (In paper mode the agent earns nothing, so there is
+nothing to distribute yet; the pool is funded by realised proceeds only.)
+
+**3 · The ClawPump fee flywheel.** $BBC launches on ClawPump, so trading fees accrue to the project
+from day one, win or lose. ClawPump keeps 35%, and 10% of *their* share buys $CLAW and $ANSEM on
+the open market, funding further builder rewards. Attention drives volume, volume drives fees, fees
+fill the Bull Pool, and the pool gives holders a reason to keep watching. The broadcast sits at the
+top of that funnel: a trading agent that narrates itself is natively clippable.
+
+---
+
+## Why this fits the tracks
+
+**ClawPump × pump.fun (builder + trader).** The track asks for an agent that trades a live market
+and survives it — prediction markets named explicitly — and for what you *added*, not what you
+wrapped. What we added: bespoke per-market ontology design, GraphRAG entity extraction driving the
+forecast, a temporal leakage guard with a dedicated CLI gate, per-category calibration feeding
+position size, non-bypassable circuit breakers, and a broadcast layer that turns an audit log into
+something people will actually watch. The LLM is one bounded component inside a multi-stage system.
+On the builder side, the agent is a company: a product, a token, a revenue line and an audience.
+
+**Inference Markets (UsePod).** The agent's dominant variable cost *is* inference — ontology
+extraction, graph construction and forecast reasoning, every cycle, indefinitely. That makes UsePod
+load-bearing rather than a line item: the compute *is* the product's cost of goods, and the
+winner's credit has an obvious job — keeping the broadcast on air after the Clawrena closes.
+
+**What the panel scores.**
+- *On-chain volume* — $BBC trading on ClawPump plus one anchor transaction per decision; the agent
+  puts activity on Solana every cycle it runs, not only at demo time.
+- *Attention* — the format is the growth strategy. Every decision ships as a clip.
+- *Token design* — access + a no-loss holder payout funded by the agent's own edge.
+- *Builders onboarded* — a Python/LLM/Bedrock team crossing onto Solana for the first time.
+- *Deploy early* — the paper alpha runs continuously, accumulating a time-stamped public record
+  across the six weeks instead of in deadline week.
+
+---
+
+## Traction (honest)
+
+We will not dress agent-generated activity up as organic growth. What is real:
+
+- A **continuously running paper-mode alpha** on Manifold, producing time-stamped autonomous
+  decisions with full reasoning traces — reproducible by anyone from the public repo.
+- A **reasoning trace anchored on-chain per decision**, each independently re-hashable and
+  verifiable against the chain in-browser.
+- A **public repo** and a deployed app that run the pipeline end to end.
+- **$BBC on ClawPump**, giving real trading volume and a fee line from launch day.
+
+What we do not have yet: realized trading P&L (we are in paper mode by design and say so on every
+screen) or a large external holder base. Live counters are on the app's Ledger tab and
+`GET /api/metrics`; the current figures are in [`TRACTION.md`](./TRACTION.md).
+
+---
+
+## On-stream answers (15 minutes, 4 questions)
+
+1. **Team.** A Python/agent-infrastructure builder crossing from traditional AI tooling onto
+   Solana for the first time — precisely the onboarding the Clawrena is trying to cause.
+2. **Product & demo.** Pick a market → watch the Reasoning Room build the ontology and graph live
+   → the decision goes to air with P(YES), edge and Kelly size → the agent trades → the trace is
+   anchored on Solana → Verify re-hashes it and matches the chain.
+3. **Market, GTM, traction.** Prediction-market volume keeps compounding and every agent in the
+   space is opaque. Our GTM is the broadcast itself: the product manufactures the clips. Traction
+   today is a continuously running autonomous alpha with verifiable anchors, not a user count.
+4. **Token utility, roadmap, vision.** Access, the Bull Pool, and the ClawPump fee flywheel today.
+   Roadmap: clear the `prd.md` gates from paper into dryrun and then live, ship the first on-chain
+   Bull Pool draw, route inference through UsePod, and open the broadcast to other agents — a
+   newsroom where any autonomous trader has to show its work on air.
+
+---
+
+*Engine details, phase gates and safety invariants: [`prd.md`](./prd.md) and [`CLAUDE.md`](./CLAUDE.md).
+Pitch kit and video script: [`pitch.md`](./pitch.md). Numbers: [`TRACTION.md`](./TRACTION.md).*
+
+> **Not financial advice.** $BBC is a hackathon token. The agent runs in paper mode; nothing here
+> is an offer, a security, or a promise of returns.

@@ -1,54 +1,98 @@
-# openmind
-**The prediction-market agent that shows its work — and proves it on-chain.**
+# BBC — the Bull Broadcasting Corporation
+
+**The autonomous trader that reports its own trades.**
 
 ![Demo animation](https://i.ibb.co/jPyT54Np/Screen-Recording2026-05-25at10-56-53-PM-ezgif-com-video-to-gif-converter.gif)
 
+BBC is an autonomous prediction-market trading agent that broadcasts its own reasoning,
+positions and P&L as a live 24/7 news channel. The anchor is a bull in a suit. The newsroom
+is the dashboard.
 
-openmind is a multi-agentic swarm intelligence prediction engine, that **builds a knowledge graph** of who and what moves a prediction
-market, reasons over that graph to a calibrated **+EV bet**, then **anchors its entire
-reasoning trace on Arc and settles in USDC**. Not a black box — a glass one.
+Under the anchor desk is a real engine: for each market the agent builds a **knowledge graph**
+of who and what moves it, reasons over that graph to a calibrated **+EV position**, sizes it
+with fractional Kelly, executes, and **anchors the full reasoning trace on Solana** as a memo
+transaction anyone can re-hash and verify. Not a black box — a glass one, read out loud.
 
-> Built for the **Agora Agents Hackathon (Canteen × Circle)** — settled on **Arc** with
-> **USDC**. Tackles **RFB 02 — Prediction Market Trader Intelligence** and the research angle
-> *"reasoning traces as the product, anchored on Arc."* It's built on top of
-> [`openclob`](./prd.md), a phased autonomous prediction-market trading engine.
+Token: **$BBC** on Solana, launched via ClawPump.
 
 ---
 
+## The AnsemHack — "The Clawrena"
+
+BBC is an entry in [The AnsemHack](https://clawpump.tech/ansemhack) (ClawPump × pump.fun,
+Solana, 19 Aug – 1 Oct 2026).
+
+- **Primary track — ClawPump × pump.fun (builder + trader).** BBC is an agent that trades a
+  live market and survives it. Prediction markets are named explicitly in the track brief, and
+  the track is judged on realised performance, risk control and on-chain volume on Solana.
+  What we added — GraphRAG market reasoning, temporal-leakage guards, hard circuit breakers,
+  and a broadcast layer that makes an agent's reasoning watchable — is net-new, not a wrapper.
+- **Secondary track — Inference Markets (UsePod).** The agent's cost line *is* inference: every
+  cycle spends on ontology extraction, graph construction and forecast reasoning. Routing that
+  spend through UsePod makes inference load-bearing rather than a line item.
+- **Chain:** Solana. Wallets, the $BBC mint, Bull Pool draws and trace anchoring are all
+  Solana-native. (This repo is mid-migration from an earlier EVM/Arc implementation.)
+- **Deadline:** **Saturday 19 September 2026** — last day to register *and* to have a live
+  token. No token, no award. $BBC launches on ClawPump before that date.
+- **Judging:** 20–30 September; winner announced 1 October.
+
+## $BBC token utility
+
+1. **Access to the live feed.** Holding $BBC unlocks the agent's live reasoning feed and its
+   open position book in real time — the raw wire, ahead of the delayed public broadcast.
+   Non-holders see the segments after the tape delay; holders see them as they are written.
+
+2. **The Bull Pool.** A share of the agent's trading proceeds accumulates into a prize pool.
+   On each payout round the pool is distributed to randomly drawn $BBC holders, weighted by
+   holding — a pool-together structure, not a lottery you buy into. **Nobody's principal is
+   ever at risk**: you keep your tokens, the agent's edge is the yield, and holding more only
+   changes your odds of being drawn. Draws happen on-chain and are independently verifiable.
+
+3. **The ClawPump fee flywheel.** $BBC launches on ClawPump, so trading fees accrue to the
+   project from day one, win or lose. ClawPump keeps 35%; 10% of *their* share buys $CLAW and
+   $ANSEM on the open market, which funds further builder rewards. Volume on the broadcast
+   feeds the pool, and the pool gives holders a reason to stay tuned.
+
 ## Why it's different
 
-Most trading agents emit a number. openmind emits an **auditable reasoning artifact**:
+Most trading agents emit a number. BBC emits an **auditable reasoning artifact** — and then
+reads it out.
 
-1. **GraphRAG reasoning, not vibes.** For each market, the agent designs a bespoke *ontology*
+1. **GraphRAG reasoning, not vibes.** For each market the agent designs a bespoke *ontology*
    (entity + relation types), extracts an *entity knowledge graph* from date-bounded news, and
    feeds a summary of that graph into the forecast — so the graph **drives** the decision. You
-   watch it build, node by node, live.
+   watch it build, node by node, live on air.
 2. **Verifiable on-chain traces.** The full trace (ontology + graph + evidence + decision) is
-   canonicalised, hashed (sha256), and the hash is **anchored on Arc**. Anyone can re-hash the
-   trace in their browser and confirm it matches the chain. A symbolic **USDC stake is settled**
-   on Arc per trade.
+   canonicalised, hashed (sha256), and the hash is **anchored on Solana** in a memo/anchor
+   transaction. Anyone can re-hash the trace in their browser and confirm it matches the chain.
 3. **A real autonomous engine underneath.** Filters → ambiguity check → date-bounded Tavily
    search (temporal-guarded against leakage) → graph-augmented reasoning → calibrated fractional
    Kelly sizing → paper/dry-run execution. Circuit breakers the LLM cannot bypass.
 
 Cheap by design: reasoning runs on **Amazon Nova** via Bedrock — a full analyze costs ~**$0.015**.
 
-## Proof: real Arc testnet transactions
+## What is actually live right now
 
-These were produced by the agent during development (chain id `5042002`, gas paid in USDC):
+Be precise about this, because the broadcast metaphor makes it easy to overclaim:
 
-| Kind | Tx | Explorer |
-|------|----|----------|
-| Trace anchor | `0xc9c7017929fae9b8…09f74bf5` | [arcscan](https://testnet.arcscan.app/tx/0xc9c7017929fae9b8e7960e62dae55e3bf3a65e1f758c2e68613fb4a609f74bf5) |
-| USDC settle | `0xbece3ee590e15dc1…5bd2cb1c` | [arcscan](https://testnet.arcscan.app/tx/0xbece3ee590e15dc107d51ba5701d3b0a3dda12d91e5524cfe71704ff5bd2cb1c) |
-| Trace anchor | `0x6e4b2c6d8bd33ca0…cbe592a7` | [arcscan](https://testnet.arcscan.app/tx/0x6e4b2c6d8bd33ca0f0d2a149af413fd5ee00c3e1c9b17766554de778cbe592a7) |
+| Phase | What is real |
+|---|---|
+| `backtest` | replay of cached resolved markets |
+| `paper` | Manifold play-money trades — **this is the testnet alpha** |
+| `dryrun` | Polymarket orders signed, never submitted |
+| `live` | real orders |
+
+**The testnet alpha runs in `paper` mode: the agent places paper trades on Manifold.** Every
+performance figure in the UI is labeled with the mode that produced it. Paper P&L is not
+realized cash and is never presented as such. Phase transitions are gated by pre-committed
+metrics (Brier, ECE, ROI, sample size, leakage check) in [`prd.md`](./prd.md) §3.
 
 ## Demo flow (the ≤3-min video)
 
 Pick a market → watch the **Reasoning Room** build the ontology and entity graph live →
-see the decision (P(YES) vs market price, edge, Kelly size) → it executes on Manifold and
-**settles + anchors on Arc** → open the **Verify** page to re-hash the trace and match it
-against the on-chain anchor.
+see the segment go to air with the decision (P(YES) vs market price, edge, Kelly size) →
+the agent executes on Manifold and **anchors the trace on Solana** → open the **Verify** page
+to re-hash the trace and match it against the on-chain anchor.
 
 ## Architecture
 
@@ -58,16 +102,16 @@ Next.js + Tailwind + shadcn-style UI   (Terminal · Reasoning Room · Verify · 
         │                               ▼
 FastAPI sidecar  (agent/api)  ── streams ontology→entities→graph→decision→settled→anchored
         │                               │
-EXISTING openclob engine  ───────▶  NEW agent/graphrag/   (ontology → entities → graph)
+    trading engine  ───────────────▶  agent/graphrag/   (ontology → entities → graph)
 (data/reasoning/strategy/             graph summary feeds the entry reasoning prompt
  execution/store/monitor)                   │
         │                                   ▼
-NEW agent/onchain/  (web3.py → Arc testnet: anchor trace hash + settle USDC)
+agent/onchain/  (Solana devnet: anchor the trace hash in a memo transaction)
         ▼
-SQLite (+ graph_runs/nodes/edges, trace_blobs, onchain_anchors)
+MongoDB (graph_runs/nodes/edges, trace_blobs, onchain_anchors)
 ```
 
-Design spec: [`docs/superpowers/specs/2026-05-25-openmind-graphrag-prediction-agent-design.md`](./docs/superpowers/specs/2026-05-25-openmind-graphrag-prediction-agent-design.md).
+Design spec (historical, pre-rename): [`docs/superpowers/specs/2026-05-25-openmind-graphrag-prediction-agent-design.md`](./docs/superpowers/specs/2026-05-25-openmind-graphrag-prediction-agent-design.md).
 
 ## Quick start
 
@@ -76,7 +120,7 @@ Design spec: [`docs/superpowers/specs/2026-05-25-openmind-graphrag-prediction-ag
 ```bash
 uv venv && source .venv/bin/activate
 uv pip install -e ".[dev]"
-cp .env.example .env        # fill in AWS (Bedrock/Nova), Tavily, ARC_TESTNET_WALLET_PRIVATE_KEY
+cp .env.example .env        # fill in AWS (Bedrock/Nova), Tavily, and the Solana wallet key
 mkdir -p data logs
 python -m agent init-db
 
@@ -84,8 +128,9 @@ python -m agent init-db
 uvicorn agent.api.server:app --port 8000
 ```
 
-Fund the Arc wallet with testnet USDC from <https://faucet.circle.com/> (select Arc Testnet).
-Without `ARC_ENABLED`/a key, on-chain calls degrade to clearly-flagged mock txns.
+Fund the Solana wallet with devnet SOL (`solana airdrop 2 <pubkey> --url devnet`) so anchor
+transactions can pay their fee. Without a configured key, on-chain calls degrade to
+clearly-flagged mock transactions.
 
 **2. Frontend (Node 18+):**
 
@@ -103,20 +148,23 @@ python -m tools.seed_demo            # auto-pick top open markets
 # or: python -m tools.seed_demo manifold:<id> ...
 ```
 
-## How it maps to the judging criteria
+## How it maps to what the panel scores
 
-- **Agentic sophistication (30%)** — the agent autonomously designs an ontology, builds a graph,
-  reasons, sizes with Kelly, executes, *and* settles on-chain. End to end, no human in the loop.
-- **Circle / Arc tooling (20%)** — real USDC settlement + trace anchoring on Arc testnet, gas in
-  USDC, arcscan-verifiable. `agent/onchain/arc.py`.
-- **Innovation (20%)** — verifiable reasoning traces as the product (research angle #1) + GraphRAG
-  applied to prediction-market forecasting.
-- **Traction (30%)** — honest: a POC built in the final window, with real on-chain testnet txns.
+- **On-chain volume** — every reasoning trace is anchored on Solana, and $BBC trading on
+  ClawPump puts real volume on the book from launch day.
+- **Attention** — "this is a spectator sport." A trading agent that broadcasts itself is
+  built to be clipped: every decision is already a segment with a headline and a lower third.
+- **Token design** — the Bull Pool ties holder outcomes to the agent's edge without putting
+  holder principal at risk, and the ClawPump fee split funds the pool.
+- **Deploy early** — the paper-mode alpha runs continuously, so the agent accumulates a public
+  track record over the six weeks rather than in deadline week.
+- **Builders onboarded** — this is a Python/LLM stack crossing onto Solana for the first time.
 
-## The underlying engine (openclob)
+## The engine
 
-openmind is built on the openclob trading agent. Its phased build, strategy, safety invariants,
-and metric gates live in [`prd.md`](./prd.md) and [`CLAUDE.md`](./CLAUDE.md). Highlights:
+BBC's trading engine is a phased autonomous agent. Its build phases, strategy, safety
+invariants and metric gates live in [`prd.md`](./prd.md) and [`CLAUDE.md`](./CLAUDE.md).
+Highlights:
 
 - Continuous buy/sell of YES/NO shares (not bet-and-hold); entry **and** exit decisions each cycle.
 - Temporal-guard leakage prevention on all search (`agent/reasoning/temporal_guard.py`).
@@ -125,7 +173,8 @@ and metric gates live in [`prd.md`](./prd.md) and [`CLAUDE.md`](./CLAUDE.md). Hi
 
 ```bash
 python -m agent cycle        # one autonomous cycle (discovery → reason → trade)
-pytest                       # 45 tests
+pytest                       # full suite
 ```
 
-> **Not financial advice.** Skill-validation / research project; paper + dry-run by default.
+> **Not financial advice.** $BBC is a hackathon token. The agent runs in paper mode; nothing
+> here is an offer, a security, or a promise of returns.

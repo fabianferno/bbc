@@ -1,24 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { ARC_FAUCET_URL } from "@/lib/chains";
+import { Check, Copy, ExternalLink, RotateCw } from "lucide-react";
+import { SOLANA_FAUCET_URL } from "@/lib/solana";
 import { useAuth } from "@/lib/auth";
 import { useDemoMode } from "@/lib/demo-mode";
-import { useArcBalance } from "@/lib/useArcBalance";
+import { useBalance } from "@/lib/useBalance";
+import { Button } from "@/components/ui";
 
 /**
- * Personal mode signs on-chain with the user's own wallet, which needs Arc-testnet
- * USDC for gas. When that balance is zero, surface a clear prompt + faucet link
- * rather than letting the signing fail with a cryptic "insufficient funds".
+ * An advisory strap under the channel bar. When the viewer has chosen to sign
+ * with their own wallet, that wallet pays Solana devnet fees — so a zero SOL
+ * balance is a warning worth reading aloud, not an error.
  */
 export function FaucetPrompt() {
-  const { authenticated, address, hasPrivy } = useAuth();
+  const { authenticated, address } = useAuth();
   const { demoMode } = useDemoMode();
-  const { isZero, refetch } = useArcBalance(authenticated ? address : null);
+  const { isZero, refetch } = useBalance(authenticated ? address : null);
   const [copied, setCopied] = useState(false);
 
-  // Only nag when it actually matters: logged in, personal mode, confirmed 0.
-  if (!hasPrivy || !authenticated || demoMode || !isZero) return null;
+  // Only run the strap when it matters: connected, signing yourself, confirmed 0.
+  if (!authenticated || demoMode || !isZero) return null;
 
   const copy = () => {
     if (!address) return;
@@ -29,42 +31,51 @@ export function FaucetPrompt() {
   };
 
   return (
-    <div className="border-b border-amber/30 bg-amber/10">
-      <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-x-4 gap-y-2 px-5 py-2.5">
-        <span className="signal-dot inline-block size-1.5 shrink-0 rounded-full bg-amber" />
-        <span className="mono text-[11px] uppercase tracking-[0.1em] text-amber">
-          Insufficient balance
+    <div role="status" className="border-b border-hold/30 bg-hold/10">
+      <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5 sm:px-6">
+        <span className="chyron shrink-0 bg-hold px-2 py-0.5 text-studio">
+          Advisory
         </span>
-        <span className="text-[12px] text-muted">
-          Your wallet has{" "}
-          <span className="text-amber">0 USDC</span> on Arc — personal mode needs
-          USDC to pay gas. Fund it from the faucet, then re-check.
-        </span>
+        <p className="min-w-0 text-[12px] text-dim">
+          Your wallet holds <span className="numeric text-hold">0 SOL</span> on
+          Solana devnet. It pays the fees while it is signing, so top it up from
+          the faucet and re-check.
+        </p>
 
         <div className="ml-auto flex items-center gap-2">
           {address && (
-            <button
+            <Button
+              variant="ghost"
               onClick={copy}
               title="Copy your wallet address"
-              className="mono border border-line px-2.5 py-1 text-[10px] uppercase tracking-[0.12em] text-faint transition-colors hover:border-line-bright hover:text-text"
+              aria-label={copied ? "Copied your wallet address" : "Copy your wallet address"}
+              className="numeric whitespace-nowrap py-1"
             >
-              {copied ? "copied ✓" : `${address.slice(0, 6)}…${address.slice(-4)} · copy`}
-            </button>
+              {copied ? (
+                <Check className="size-3 text-up" strokeWidth={2} aria-hidden />
+              ) : (
+                <Copy className="size-3" strokeWidth={2} aria-hidden />
+              )}
+              {`${address.slice(0, 4)}…${address.slice(-4)}`}
+            </Button>
           )}
           <a
-            href={ARC_FAUCET_URL}
+            href={SOLANA_FAUCET_URL}
             target="_blank"
             rel="noreferrer"
-            className="mono border border-amber/50 bg-amber/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.12em] text-amber transition-colors hover:bg-amber/20"
+            className="chyron inline-flex items-center gap-2 whitespace-nowrap border border-hold/50 bg-hold/10 px-3 py-1 text-hold transition-colors hover:bg-hold/20"
           >
-            get testnet USDC ↗
+            Get devnet SOL
+            <ExternalLink className="size-3" strokeWidth={2} aria-hidden />
           </a>
-          <button
+          <Button
+            variant="ghost"
             onClick={refetch}
-            className="mono border border-line px-2.5 py-1 text-[10px] uppercase tracking-[0.12em] text-muted transition-colors hover:border-line-bright hover:text-text"
+            className="whitespace-nowrap py-1"
           >
-            ↻ recheck
-          </button>
+            <RotateCw className="size-3" strokeWidth={2} aria-hidden />
+            Re-check
+          </Button>
         </div>
       </div>
     </div>

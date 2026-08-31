@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" fill="#0a0d11"/>
+  <rect x="4" y="18" width="56" height="28" fill="#bb1919"/>
+  <text x="32" y="39.5" text-anchor="middle"
+        font-family="Georgia, 'Times New Roman', serif" font-weight="700"
+        font-size="21" letter-spacing="0.5" fill="#ffffff">BBC</text>
+</svg>

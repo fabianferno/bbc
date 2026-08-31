@@ -50,16 +50,19 @@ class Settings(BaseSettings):
     graphrag_enabled: bool = True
     graphrag_max_nodes: int = 30          # cap graph size for clean visualisation
 
-    # ---- arc (on-chain settlement) ----
-    arc_enabled: bool = True              # False → mock txns (build never blocked by RPC)
-    arc_rpc_url: str = "https://rpc.testnet.arc.network"
-    arc_chain_id: int = 5042002
-    arc_testnet_wallet_private_key: str | None = None
-    arc_usdc_address: str = "0x3600000000000000000000000000000000000000"
-    arc_anchor_contract: str | None = None   # if set, use Anchor.sol; else raw calldata
-    arc_treasury_address: str | None = None  # settle destination; defaults to own wallet
-    arc_settle_usdc: float = 0.01            # symbolic per-trade stake/fee (paper mode)
-    arc_explorer_base: str = "https://testnet.arcscan.app"
+    # ---- solana (on-chain settlement) ----
+    solana_enabled: bool = True           # False → mock txns (build never blocked by RPC)
+    solana_cluster: str = "devnet"
+    solana_rpc_url: str = "https://api.devnet.solana.com"
+    solana_explorer_base: str = "https://explorer.solana.com"
+    solana_keypair_path: Path | None = None  # path to the agent's Solana keypair JSON
+    solana_treasury_address: str | None = None  # settle destination; defaults to own pubkey
+    solana_memo_program: str = "MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr"
+    solana_settle_usdc: float = 0.01      # symbolic per-trade stake/fee (paper mode)
+    # Circle USDC on devnet — the settle asset until $BBC is minted.
+    usdc_mint_address: str = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
+    # $BBC is not launched yet: empty until the ClawPump mint exists.
+    bbc_mint_address: str = ""
 
     # ---- web ----
     web_origin: str = "http://localhost:3000"
@@ -87,6 +90,46 @@ class Settings(BaseSettings):
     agent_log_path: Path = Path("logs/agent.jsonl")
     agent_log_level: str = "INFO"
     alert_webhook_url: str | None = None
+
+    # ---- back-compat aliases (agent/onchain/arc.py, agent/api/*) ----
+    # These modules still speak the EVM/Arc vocabulary; the properties keep them
+    # importing cleanly until they are rewritten for Solana. Do not add new uses.
+    @property
+    def arc_enabled(self) -> bool:
+        return self.solana_enabled
+
+    @property
+    def arc_rpc_url(self) -> str:
+        return self.solana_rpc_url
+
+    @property
+    def arc_chain_id(self) -> int:
+        # Solana has no EVM chain id; 0 is a deliberate "not applicable" marker.
+        return 0
+
+    @property
+    def arc_testnet_wallet_private_key(self) -> str | None:
+        return str(self.solana_keypair_path) if self.solana_keypair_path else None
+
+    @property
+    def arc_usdc_address(self) -> str:
+        return self.bbc_mint_address or self.usdc_mint_address
+
+    @property
+    def arc_anchor_contract(self) -> str:
+        return self.solana_memo_program
+
+    @property
+    def arc_treasury_address(self) -> str | None:
+        return self.solana_treasury_address
+
+    @property
+    def arc_settle_usdc(self) -> float:
+        return self.solana_settle_usdc
+
+    @property
+    def arc_explorer_base(self) -> str:
+        return self.solana_explorer_base
 
     @field_validator("agent_categories")
     @classmethod

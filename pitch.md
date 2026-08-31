@@ -1,174 +1,192 @@
-# openmind — Pitch Kit
+# BBC — Pitch Kit
 
-**The prediction-market agent that shows its work, and proves it on-chain.**
+**The Bull Broadcasting Corporation. The autonomous trader that reports its own trades.**
 
-- **Live app:** https://openthemind.vercel.app
-- **Repo:** https://github.com/fabianferno/openclob
-- **Track:** Agora Agents Hackathon (Canteen × Circle) — RFB 02 *Prediction Market Trader Intelligence* + research angle #1 *reasoning traces as the product, anchored on Arc*.
+- **Ticker:** $BBC on Solana, launched via ClawPump
+- **Repo:** https://github.com/fabianferno/bbc
+- **Hackathon:** The AnsemHack / The Clawrena (ClawPump × pump.fun, Solana, 19 Aug – 1 Oct 2026)
+- **Tracks:** **ClawPump × pump.fun** (builder *and* trader) — primary; **Inference Markets
+  (UsePod)** — secondary. Both judge the same tokenized project, so they stack.
+- **Hard deadline:** 19 September 2026 — registered and tokenized, or out.
 
 ---
 
 ## 1. The one-liner
 
-> Every trading agent gives you a number. openmind gives you the **reasoning** — a knowledge
-> graph it builds from the news to find mispriced markets — and then **anchors that reasoning on
-> Arc** so anyone can verify the bet was earned, not hallucinated.
+> Every trading agent gives you a number. BBC gives you the **broadcast** — a bull in a suit
+> reading out the knowledge graph it built, the probability it computed, the position it took
+> and what happened to it — with every reasoning trace anchored on Solana so anyone can check
+> the call was earned, not hallucinated.
 
-## 2. The problem (say this in 15 seconds)
+## 2. The problem (15 seconds)
 
-AI trading agents are black boxes. You see a trade, never the *why*. On prediction markets that's
-fatal: edge comes from **synthesis of messy public information**, and you can't trust — or
-improve — reasoning you can't inspect. And nothing ties the claimed reasoning to the trade that
-was actually placed.
+AI trading agents are black boxes, and the ones that aren't are unwatchable. You get a number
+and a JSON dump. On prediction markets that's fatal: edge comes from **synthesis of messy public
+information**, so reasoning you can't inspect is reasoning you can't trust or improve. And the
+agents that do publish their thinking publish it in a format nobody reads.
 
 ## 3. The solution (30 seconds)
 
-openmind makes the reasoning the product:
+BBC makes the reasoning the product *and* makes it watchable:
 
 1. **Builds a knowledge graph.** For each market it designs a bespoke ontology, then extracts an
    entity graph from *date-bounded* news (leakage-guarded). The graph **feeds the forecast** — it
    drives the decision, it isn't decoration.
 2. **Decides like a calibrated trader.** Estimates P(YES), computes edge vs. market price, sizes
-   with fractional Kelly, and trades.
-3. **Proves it on Arc.** Canonicalises the full reasoning trace, hashes it (sha256), **anchors the
-   hash on Arc**, and **settles USDC**. Anyone re-hashes the trace in-browser and matches it to the
-   chain. A glass box, not a black box.
-4. **Lets you sign it yourself.** A header toggle switches between **demo mode** (the server wallet
-   signs) and **personal mode** — where you log in, get an **embedded wallet on Arc** (Privy, no seed
-   phrase), top it up from the **Circle faucet**, and **sign the anchor + USDC settle from your own
-   wallet** in-browser. The ledger attributes those on-chain txns to you. Gas is USDC.
+   with fractional Kelly under hard circuit breakers the LLM cannot bypass, and trades.
+3. **Broadcasts it.** Every stage — discovery, evidence, probability, entry, exit, settlement —
+   is emitted as a news segment with a headline, a lower third and a ticker line. The reasoning
+   trace *is* the script. Auditability becomes a viewing experience instead of a log file.
+4. **Proves it on Solana.** The full trace is canonicalised, hashed (sha256) and the hash is
+   anchored in a Solana memo transaction. Anyone re-hashes the trace in-browser and matches it
+   to the chain. A glass box, on air.
 
 Runs on **Amazon Nova Lite** (Bedrock) — a full analysis costs ~**$0.015** (~$0.008 / decision).
 
+## 4. What is actually live (say this plainly)
+
+The testnet alpha runs in **`paper` mode**: the agent places **paper trades on Manifold**. Every
+figure on screen carries the mode that produced it. Paper P&L is not realized cash and we never
+present it as such. The path to real orders is pre-committed and metric-gated in `prd.md` §3
+(Brier, ECE, ROI, minimum sample size, leakage check) — `backtest → paper → dryrun → live`. We
+would rather show a judge a gate we haven't passed yet than a number we can't defend.
+
 ---
 
-## 4. The 3-minute video script (shot-by-shot)
+## 5. $BBC token utility
+
+**1 · Access.** Holding $BBC unlocks the agent's live reasoning feed and open position book in
+real time — the raw wire, ahead of the delayed public broadcast. Everyone can watch BBC; holders
+watch it live.
+
+**2 · The Bull Pool.** A share of the agent's trading proceeds accumulates into a prize pool.
+Each payout round, that pool is distributed to randomly drawn $BBC holders, weighted by holding.
+It's a pool-together structure: **nobody's principal is ever at risk** — you keep every token you
+hold, the agent's edge is the yield, and size only changes your odds of being drawn. Draws
+execute on-chain and are independently verifiable, like everything else the agent does.
+
+**3 · The ClawPump fee flywheel.** $BBC launches on ClawPump, so trading fees accrue to the
+project from day one, win or lose. ClawPump keeps 35%; 10% of *their* share buys $CLAW and $ANSEM
+on the open market, funding further builder rewards. Attention drives volume, volume drives fees,
+fees fill the Bull Pool, the pool gives holders a reason to keep watching. The broadcast is the
+top of that funnel — and a trading agent that narrates itself is natively clippable.
+
+---
+
+## 6. The 3-minute video script (shot-by-shot)
 
 > Record against the live app or localhost. Use a **seeded** market for the main take (the ▶ replay
 > button is deterministic), then show one truly live run. Keep cuts tight.
 
-**[0:00–0:20] — Hook + problem.**
-*Screen: the Terminal home page, hero "Reasoning you can verify."*
-> "AI agents that trade give you a number and ask you to trust it. openmind is different — it shows
-> you exactly how it thinks, and it proves that thinking on-chain. Let me show you."
+**[0:00–0:20] — Hook.**
+*Screen: the broadcast home page, the bull anchor at the desk, ticker running.*
+> "This is BBC — the Bull Broadcasting Corporation. It's an autonomous prediction-market trader,
+> and it reports its own trades, live, on Solana. Let's watch it work a market."
 
 **[0:20–0:35] — Pick a market.**
-*Screen: scroll the live markets grid, click a geopolitical market (e.g. the Ukraine or Iran one).*
-> "I'll pick a real prediction market. openmind is going to research it from scratch."
+*Screen: scroll the live markets grid, click a geopolitical market.*
+> "A real prediction market. The agent is going to research it from scratch, on air."
 
 **[0:35–1:30] — The Reasoning Room (THE moment). Hit ▶ run / replay.**
 *Screen: left panel — ontology types appear as chips; center — the knowledge graph builds node by
-node and wires itself together; right — evidence streams in.*
+node; right — evidence streams in under the lower third.*
 > "First it designs an ontology — the entity and relationship types that matter for *this* market.
-> Then it reads date-bounded news and extracts a knowledge graph, live — people, organizations,
-> events, and how they connect. Every node is cited. Nothing published after the cutoff gets in —
-> that's the temporal guard that stops it from cheating."
+> Then it reads date-bounded news and extracts a knowledge graph, live. Every node is cited.
+> Nothing published after the cutoff gets in — that's the temporal guard that stops it cheating."
 
-**[1:30–2:05] — The decision.**
-*Screen: the decision card fills — P(YES) vs market price bar, edge, Kelly size, rationale.*
-> "It reasons *over the graph* to a calibrated probability — here it sees [X]% versus the market's
-> [Y]%, an edge of [Z] points — and sizes the position with fractional Kelly. This is real agency:
-> it decided what to believe and how much to bet."
+**[1:30–2:05] — The decision goes to air.**
+*Screen: the segment card fills — P(YES) vs market price bar, edge, Kelly size, rationale.*
+> "It reasons *over the graph* to a calibrated probability — [X]% versus the market's [Y]%, an
+> edge of [Z] points — and sizes with fractional Kelly. Then it places the trade. This run is in
+> paper mode on Manifold, and the screen says so; we don't dress paper P&L up as cash."
 
-**[2:05–2:40] — Settle + anchor on Arc (the proof).**
-*Screen: the on-chain panel — USDC settled, trace anchored; click the arcscan link. (Optional: flip
-the header toggle to **personal**, log in, and sign the same anchor from your own embedded wallet.)*
-> "Now the part nobody else does. It settles USDC on Arc, and it anchors a hash of the entire
-> reasoning trace on-chain — for about a cent, paid in USDC. Here's the real transaction on Arc. And
-> if I flip to personal mode, *I* sign it — from my own wallet, gas in USDC, no server key involved."
+**[2:05–2:40] — Anchor on Solana (the proof).**
+*Screen: the on-chain panel — trace anchored; click through to the explorer.*
+> "Now the part nobody else does. It hashes the entire reasoning trace and anchors that hash on
+> Solana. Here's the transaction. The reasoning is now tamper-evident."
 
-**[2:40–3:00] — Verify + autonomy + close.**
-*Screen: Verify page → "✓ Verified" (re-hash matches). Quick cut to the Autonomous page running.*
-> "Anyone can re-hash the reasoning in their browser and confirm it matches the chain — verified.
-> And it does all of this on its own —" *(show /auto running)* "— picking markets, reasoning, and
-> settling, no human in the loop. openmind: reasoning you can verify."
+**[2:40–3:00] — Verify, autonomy, token, close.**
+*Screen: Verify page → "✓ Verified". Cut to the autonomous loop running, then the $BBC page.*
+> "Anyone can re-hash the reasoning in their browser and confirm it matches the chain. And it does
+> all of this on its own — picking markets, reasoning, trading, reporting. $BBC holders get the
+> live feed, and a share of what the agent makes gets drawn back to holders through the Bull Pool.
+> BBC: the autonomous trader that reports its own trades."
 
-**Fallbacks for the recording:** use ▶ replay (deterministic, no API latency); if the live API is
-down, the seeded markets still play the full sequence with their real arcscan links. Nav: **Terminal**
-(pick/run), **Autonomous** (`/auto`), **Ledger** (`/portfolio`, every txn clickable to arcscan).
+**Fallbacks:** use ▶ replay (deterministic, no API latency); if the live API is down the seeded
+markets still play the full sequence.
 
 ---
 
-## 5. Does it fit the rubric? (honest scorecard)
+## 7. How it maps to what the panel scores
 
-> Judges "weigh agency and traction equally" and "read repos like operators."
+| What they score | Us |
+|---|---|
+| **On-chain volume** | $BBC trading on ClawPump from launch, plus one anchor transaction per decision — the agent generates Solana activity every cycle it runs, not only at demo time. |
+| **Attention** | "A spectator sport." An agent that broadcasts itself is built to be clipped: each decision ships as a segment with a headline and a lower third. The mascot does work — a bull anchor is a format, not a logo. |
+| **Token design** | The Bull Pool ties holder outcomes to the agent's realised edge without risking holder principal, and the ClawPump fee split funds it. Utility is access + yield, not governance theatre. |
+| **Builders onboarded** | A Python/LLM/AWS-Bedrock stack crossing onto Solana for the first time — exactly the traditional-tech agentic developer the track is trying to pull in. |
+| **Deploy early** | The paper-mode alpha runs continuously, so the agent accumulates a public, time-stamped track record across the six weeks rather than in deadline week. |
+| **"We score what you added, not what you wrapped."** | GraphRAG ontology design, temporal-leakage guards, per-category calibration, non-bypassable circuit breakers and the broadcast layer are all ours. The LLM is one bounded component inside a multi-stage system. |
 
-| Weight | Criterion | Assessment | Score |
-|---|---|---|---|
-| **30%** | **Agentic Sophistication** | Strong. Autonomous end-to-end: ontology design → graph extraction → search → graph-driven reasoning → Kelly sizing → execution → on-chain settlement. The `/auto` page and `agent cycle`/`loop` show full autonomy (no human market-pick). | **8.5/10** |
-| **30%** | **Traction** | Honest weak spot, but improved. Real, quantifiable **on-chain volume on Arc** (**40 real testnet txns: 30 anchored traces + 10 USDC settlements** across 26 markets — see `TRACTION.md`), a live deployed app, and a public repo. **Personal mode** now gives any visitor a real path to *their own* verifiable txns (log in → embedded wallet → faucet → sign). What we still lack is an organic user base (final-window build). | **4.5/10** |
-| **20%** | **Circle / Arc tooling** | Now a strength. Real USDC settlement + trace anchoring on Arc testnet, **gas paid in USDC**, arcscan-verifiable — plus **user-signed on-chain flow**: embedded wallets on Arc, **Circle USDC faucet** onboarding, client-signed USDC ERC-20 settle. (Honest: embedded wallets are via **Privy**, not the Circle Wallets SDK; USYC treasury yield remains a documented stretch.) | **7.5/10** |
-| **20%** | **Innovation** | Strong. Verifiable reasoning traces on-chain is *their own* research angle #1; GraphRAG applied to prediction-market forecasting + the "glass box" thesis is genuinely novel. | **8.5/10** |
+**Inference Markets (secondary):** the agent's dominant variable cost *is* inference — ontology
+extraction, graph construction and forecast reasoning, every cycle, forever. Routing that through
+UsePod makes inference load-bearing rather than a line item, and gives the winner's compute credit
+a direct job: keeping the broadcast on air after the Clawrena closes.
 
-**Where we win:** innovation + agency (50% of the score) are our strengths, and they're real, not
-slideware. **Where we're capped:** traction — we can't manufacture an organic user base overnight, so
-a *grand* prize is a stretch; a **Standout Team** award and an outside shot at a 3rd-tier grand prize
-are the realistic targets. Personal mode narrows the gap by letting judges *become* the traction —
-each can connect a wallet and produce a verifiable on-chain decision themselves.
+## 8. Is the product practical?
 
-## 6. Is the product practical / does it make sense?
-
-**Yes — and it's more than a hackathon toy:**
-
-- **Real underlying engine.** It's built on `openclob`, a phased autonomous trading agent with
-  leakage-guarded backtesting, calibration tracking, and hard circuit breakers — not a demo shell.
-- **The on-chain angle is genuinely useful, not bolted on.** "Reasoning traces as a verifiable
-  asset" is a real emerging idea (Trading-R1 / the hosts' own analysis). Anchoring is cheap on Arc
-  precisely because of sub-cent USDC fees — the product *needs* Arc's economics to make sense, which
-  is exactly the kind of "what does Arc unlock" the hosts asked for.
+- **Real engine underneath.** A phased autonomous trading agent with leakage-guarded backtesting,
+  calibration tracking and hard circuit breakers — not a demo shell.
+- **The broadcast is the distribution.** Most agent projects have to buy attention. This one
+  produces it as a by-product of operating: every cycle is content.
 - **Honest about edge.** The PRD is explicit that this is skill-validation, gated on Brier/ECE/ROI
-  before real money. We don't overclaim profitability — judges who read like operators will respect
-  that.
-- **Clear path to a real product:** agent-as-builder (earn USDC builder fees per recommended fill),
-  a public "verified reasoning" feed, and markets *on* which reasoning patterns are most profitable.
-- **A real user surface, not just a demo.** Personal mode means a user owns the wallet, the gas, and
-  the signature — the same flow a production "bring-your-own-wallet" product would ship. State is
-  persisted in MongoDB (graph runs, trace blobs, on-chain anchors), so each user's decisions and
-  attributed txns survive and feed calibration.
+  before real money. Judges who read repos like operators will respect that more than a chart.
+- **Clear path to revenue:** ClawPump fees from day one, builder-code fees on recommended fills,
+  and holder access to the live feed.
 
-**Caveats to own (don't hide them):** the symbolic USDC settlement is a stake/fee, not real PnL
-(it's paper trading); the live link depends on the API being hosted; the demo's "pick a market" is
-human-initiated while the autonomous loop is the truly hands-off mode.
+**Caveats we own:** the alpha trades paper on Manifold, so there is no realized cash P&L yet; the
+Bull Pool can only distribute what the agent actually earns, and in paper mode that is zero by
+construction; the Solana migration from the earlier EVM implementation is in flight.
 
 ---
 
-## 7. Anticipated judge questions (prep)
+## 9. Anticipated judge questions
 
 - **"Is the graph real or decoration?"** Real — its summary is injected into the reasoning prompt;
   remove it and the decision changes. See `agent/strategy/entry.py` + `agent/graphrag/`.
 - **"What stops data leakage / hindsight?"** A temporal guard drops any source published after the
-  market's reasoning cutoff (`agent/reasoning/temporal_guard.py`); there's a dedicated leakage test.
-- **"Why Arc specifically?"** Sub-cent USDC fees + instant finality make anchoring every decision
-  economical — anchoring on a normal L1 would cost more than the trade. Gas is paid in USDC.
+  market's reasoning cutoff (`agent/reasoning/temporal_guard.py`); `agent leakage-check` is a
+  hard Phase-1 gate that exits non-zero on failure.
+- **"Is this profitable?"** Not proven, and we won't claim it. It's in paper mode; the gates that
+  let it graduate to real orders are written down in advance in `prd.md` §3 so we can't move them.
 - **"How is this not just an LLM wrapper?"** Ontology design + graph extraction + calibrated Kelly
-  sizing + circuit breakers + on-chain settlement is a multi-stage autonomous system; the LLM is one
-  component, bounded by hard limits it cannot bypass.
-- **"What's the business model?"** Polymarket-style builder codes: the agent earns USDC builder fees
-  on fills it recommends — attribution on-chain, no custody.
-- **"How would real users transact, not just your agent?"** Personal mode: a visitor logs in, gets an
-  embedded wallet on Arc, funds it from the Circle faucet, and signs the anchor + USDC settle from
-  their own wallet — the server never holds their key. The ledger attributes those txns to them.
-- **"Is the wallet flow Circle Wallets?"** Honest answer: embedded wallets are via **Privy** (fastest
-  to ship in the window), but everything settles in **USDC on Arc with gas in USDC**, onboarded
-  through the **Circle faucet** — swapping in the Circle Wallets SDK is a drop-in next step.
+  sizing + circuit breakers + on-chain anchoring is a multi-stage autonomous system; the LLM is one
+  component, bounded by limits it cannot bypass.
+- **"Is the Bull Pool a lottery?"** No — participants stake nothing and can lose nothing. It's a
+  no-loss prize distribution: the agent's proceeds are the prize, holdings determine odds, draws
+  are on-chain and verifiable.
+- **"What's the business model?"** ClawPump trading fees from day one, plus builder-code fees on
+  fills the agent recommends (on-chain attribution, no custody).
+- **"Why Solana?"** Cheap, fast anchoring makes proving *every* decision economical rather than a
+  ceremonial once-per-demo transaction — and ClawPump, the token, the pool draws and the audience
+  are all already here.
 
-## 8. Numbers + links to cite
+## 10. Numbers + links to cite
 
-- Model: **Amazon Nova Lite** (Bedrock) · cost ≈ **$0.015 / full analysis** (~$0.008 / decision);
-  **$0.25** total LLM spend for all traction below.
-- On-chain (Arc testnet, chain id `5042002`, gas in USDC): **40 real txns** — **30 anchored traces**,
-  **10 USDC settlements** (~0.10 USDC), across **26 markets** / **30 autonomous decisions**. Full
-  list + arcscan links in `TRACTION.md`. Agent wallet `0x5a09e3eC3EFDD91205Cbb097142a4f4dCEFc7f02`.
-- Personal mode: embedded wallets via Privy on Arc, USDC faucet at faucet.circle.com, USDC as gas;
-  user-signed anchor + ERC-20 USDC settle (USDC `0x3600…0000`).
-- Verify flow: client-side sha256 re-hash matches the on-chain anchor (`/verify/<decisionId>`).
-- Live app: https://openthemind.vercel.app · Repo: https://github.com/fabianferno/openclob
+- Model: **Amazon Nova Lite** (Bedrock) · ≈ **$0.015 / full analysis** (~$0.008 / decision).
+- Mode: **`paper`** (Manifold play-money) for the alpha — labeled everywhere it appears.
+- On-chain: one **Solana memo anchor per decision**; verify flow re-hashes the canonical trace
+  client-side at `/verify/<decisionId>` and matches it to the chain.
+- Token: **$BBC**, ClawPump (Solana). Fee split per ClawPump's published structure.
+- Repo: https://github.com/fabianferno/bbc
 
-## 9. Submission checklist
+## 11. Submission checklist (AnsemHack)
 
+- [ ] Registered at https://clawpump.tech/ansemhack#register (by 19 Sept)
+- [ ] Entry posted on X + following [@clawpumptech](https://x.com/clawpumptech) — *the post is the receipt, there is no confirmation email*
+- [ ] **$BBC live on ClawPump by 19 Sept**, verified against the same X handle
+- [ ] Tracks selected: ClawPump × pump.fun + Inference Markets
 - [x] Public repo
-- [x] Live deployed app
+- [ ] Live deployed app
 - [ ] ≤3-min video (script above)
-- [ ] Written traction report (`TRACTION.md` — finalize numbers)
-- [ ] `arc-canteen update` logged (traction channel)
-- [ ] Submit: https://forms.gle/ok3Gr9zhmHnApvK48
+- [ ] Weekly livestream slot booked (15 min, 4 questions: team · product & demo · market/GTM/traction · token utility & vision)
