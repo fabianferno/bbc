@@ -20,9 +20,10 @@ import {
   ShieldAlert,
   ShieldCheck,
 } from "lucide-react";
-import { LowerThird, Slug } from "@/components/broadcast";
+import { Slug } from "@/components/broadcast";
 import { Button, Pill, SectionLabel } from "@/components/ui";
 import { api, type TraceResp } from "@/lib/api";
+import { useOnAir } from "@/components/channel-frame";
 import { explorerTxUrl } from "@/lib/solana";
 import { cn, truncHash } from "@/lib/utils";
 
@@ -139,22 +140,21 @@ export default function VerifyPage({
     }
   };
 
+  useOnAir({
+    headline: err
+      ? "No trace on file"
+      : verifying || !recomputed
+        ? `Checking the working on decision #${id}`
+        : match
+          ? `Decision #${id} checks out`
+          : `Decision #${id} does not match its anchor`,
+    strap:
+      "The reasoning trace is hashed in your browser and compared with the hash the desk wrote to Solana",
+    brandSuffix: "Verify",
+  });
+
   return (
     <div>
-      <LowerThird
-        brandSuffix="Verify"
-        headline={
-          err
-            ? "No trace on file"
-            : verifying || !recomputed
-              ? `Checking the working on decision #${id}`
-              : match
-                ? `Decision #${id} checks out`
-                : `Decision #${id} does not match its anchor`
-        }
-        strap="The reasoning trace is hashed in your browser and compared with the hash the desk wrote to Solana"
-      />
-
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
         <Link
           href="/portfolio"
@@ -163,6 +163,10 @@ export default function VerifyPage({
           <ArrowLeft className="size-3.5" strokeWidth={2.5} aria-hidden />
           Back to the book
         </Link>
+
+        <h1 className="headline mt-5 max-w-[20ch] text-[clamp(2.2rem,5.5vw,3.4rem)] text-white">
+          The receipt for decision #{id}
+        </h1>
 
         {err && (
           <div className="monitor mt-6 border-down/45 px-4 py-4">

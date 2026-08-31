@@ -4,9 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { RefreshCw, Radio, Ticket, Eye } from "lucide-react";
 import { MarketCard } from "@/components/market-card";
-import { AnchorBull, LowerThird } from "@/components/broadcast";
+import { AnchorBull } from "@/components/broadcast";
 import { SectionLabel, Button, Pill, ReadoutStrip } from "@/components/ui";
 import { api, type MarketsResp, type MetricsResp } from "@/lib/api";
+import { useOnAir } from "@/components/channel-frame";
 import { useRequireAuth } from "@/lib/auth";
 import type { Market } from "@/lib/types";
 
@@ -71,6 +72,13 @@ export default function Home() {
 
   const bulletin = bulletins[slot % bulletins.length];
 
+  useOnAir({
+    headline: bulletin.headline,
+    strap: bulletin.strap,
+    brandSuffix: "Markets",
+    cut: slot,
+  });
+
   const discover = async () => {
     setDiscovering(true);
     await api.discover().catch(() => {});
@@ -82,7 +90,7 @@ export default function Home() {
     <div>
       {/* ── the studio ────────────────────────────────────────────────── */}
       <section className="studio relative isolate overflow-hidden">
-        <div className="relative mx-auto grid max-w-[1440px] grid-cols-1 items-end gap-6 px-4 pb-[8.25rem] pt-10 sm:px-6 lg:min-h-[74vh] lg:grid-cols-[1.15fr_0.85fr] lg:gap-4 lg:pt-14">
+        <div className="relative mx-auto grid max-w-[1440px] grid-cols-1 items-end gap-6 px-4 pb-0 pt-10 sm:px-6 lg:min-h-[68vh] lg:grid-cols-[1.15fr_0.85fr] lg:gap-4 lg:pt-14">
           <div className="pb-2 lg:pb-10">
             <h1 className="headline max-w-[16ch] text-[clamp(2.6rem,7vw,4.75rem)] text-white">
               The market moves. Somebody has to explain why.
@@ -118,19 +126,10 @@ export default function Home() {
           {/* the anchor — runs behind the strap, as a presenter does on air */}
           <AnchorBull
             priority
-            className="mx-auto -mb-[8.25rem] h-[52vh] w-full max-w-[400px] self-end sm:h-[58vh] sm:max-w-[460px] lg:h-[74vh] lg:max-w-none"
+            className="mx-auto h-[46vh] w-full max-w-[400px] self-end sm:h-[54vh] sm:max-w-[460px] lg:h-[66vh] lg:max-w-none"
             sizes="(max-width: 1024px) 70vw, 560px"
           />
         </div>
-
-        {/* the lower third, keyed over the bottom of the shot */}
-        <LowerThird
-          key={slot}
-          brandSuffix="Markets"
-          headline={bulletin.headline}
-          strap={bulletin.strap}
-          className="absolute inset-x-0 bottom-0 z-10"
-        />
       </section>
 
       {/* ── the wall ──────────────────────────────────────────────────── */}

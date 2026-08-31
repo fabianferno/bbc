@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { StudioClock } from "@/components/broadcast";
+import { ChannelMark } from "@/components/channel-mark";
 import { AuthControls } from "@/components/auth-controls";
 
 /** `short` is what fits on a phone; `label` is the programme's real name. */
@@ -54,9 +55,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-50 border-b border-rule bg-studio/95 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-[1440px] items-center gap-4 px-4 sm:px-6">
         <Link href="/" className="flex shrink-0 items-baseline gap-2.5">
-          <span className="headline bg-red px-2 py-0.5 text-xl leading-tight text-white">
-            BBC
-          </span>
+          <ChannelMark size="sm" />
           <span className="chyron hidden text-dim sm:inline">
             Bull Broadcasting Corporation
           </span>

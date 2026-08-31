@@ -8,6 +8,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import { ChannelMark } from "@/components/channel-mark";
 import { cn } from "@/lib/utils";
 
 /* ── clock ─────────────────────────────────────────────────────────────── */
@@ -74,14 +75,12 @@ export function Slug({
  * clock sits in its own box on the right, exactly as it does on air.
  */
 export function LowerThird({
-  brand = "BBC",
   brandSuffix = "MARKETS",
   headline,
   strap,
   animate = true,
   className,
 }: {
-  brand?: string;
   brandSuffix?: string;
   headline: React.ReactNode;
   strap?: React.ReactNode;
@@ -97,12 +96,11 @@ export function LowerThird({
         )}
       >
         <span className="shrink-0 pb-0.5">
-          <span className="headline block text-2xl leading-none text-white sm:text-3xl">
-            {brand}
-          </span>
-          <span className="chyron mt-1 block text-white/80">{brandSuffix}</span>
+          <ChannelMark size="sm" onRed className="sm:hidden" />
+          <ChannelMark size="md" onRed className="hidden sm:inline-flex" />
+          <span className="chyron mt-1.5 block text-white/85">{brandSuffix}</span>
         </span>
-        <h2 className="headline min-w-0 flex-1 text-balance text-[clamp(1.25rem,3.1vw,2.4rem)] text-white">
+        <h2 className="headline line-clamp-2 min-w-0 flex-1 text-balance text-[clamp(1.25rem,3.1vw,2.4rem)] text-white">
           {headline}
         </h2>
       </div>

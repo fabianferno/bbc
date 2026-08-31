@@ -13,9 +13,10 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowUpRight, RefreshCw } from "lucide-react";
-import { LowerThird, Slug } from "@/components/broadcast";
+import { Slug } from "@/components/broadcast";
 import { Button, Pill, SectionLabel, ReadoutStrip } from "@/components/ui";
 import { api, type MetricsResp, type PortfolioResp, type Position } from "@/lib/api";
+import { useOnAir } from "@/components/channel-frame";
 import { useAuth } from "@/lib/auth";
 import { useBalance } from "@/lib/useBalance";
 import { useDemoMode } from "@/lib/demo-mode";
@@ -112,23 +113,24 @@ export default function PortfolioPage() {
   const pnl = pf?.realized_pnl ?? null;
   const empty = Boolean(pf) && positions.length === 0;
 
+  const headline =
+    pnl == null ? "The book" : `The book is running ${fmtPnl(pnl)} in paper`;
+
+  useOnAir({
+    headline,
+    strap: personal
+      ? `Positions and anchors signed by ${shortAddr(address)} — testnet alpha, simulated on Manifold`
+      : "The desk's own book — testnet alpha, every trade simulated on Manifold",
+    brandSuffix: "Business",
+  });
+
   return (
     <div>
-      <LowerThird
-        brandSuffix="Business"
-        headline={
-          pnl == null
-            ? "The book"
-            : `The book is running ${fmtPnl(pnl)} in paper`
-        }
-        strap={
-          personal
-            ? `Positions and anchors signed by ${shortAddr(address)} — testnet alpha, simulated on Manifold`
-            : "The desk's own book — testnet alpha, every trade simulated on Manifold"
-        }
-      />
-
       <div className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6">
+        <h1 className="headline mb-6 max-w-[20ch] text-[clamp(2.2rem,5.5vw,3.4rem)] text-white">
+          {headline}
+        </h1>
+
         {/* the standing warning: no figure on this page is cash */}
         <div className="flex flex-wrap items-center gap-3">
           <Pill tone="hold">Paper mode · simulated on Manifold</Pill>

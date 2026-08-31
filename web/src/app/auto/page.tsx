@@ -13,11 +13,11 @@ import {
   AnchorBull,
   BreakingCutIn,
   LiveLamp,
-  LowerThird,
   Slug,
   StudioClock,
 } from "@/components/broadcast";
 import { Button, Pill, SectionLabel, ReadoutStrip } from "@/components/ui";
+import { useOnAir } from "@/components/channel-frame";
 import { useRequireAuth } from "@/lib/auth";
 import { cn, fmtPct, truncHash } from "@/lib/utils";
 import { explorerTxUrl } from "@/lib/solana";
@@ -198,11 +198,18 @@ export default function AutoPage() {
           ? "The feed dropped mid-broadcast"
           : "Standing by — the desk is unattended and takes no instruction once it starts";
 
+  useOnAir({
+    headline: current ? current.market.question : "The desk is standing by",
+    strap: statusLine,
+    brandSuffix: "Night desk",
+    cut: current ? current.index : "standby",
+  });
+
   return (
     <div>
       {/* ── on-air header ───────────────────────────────────────────── */}
       <section className="studio relative isolate overflow-hidden border-b border-rule">
-        <div className="mx-auto grid max-w-[1440px] grid-cols-1 items-end gap-6 px-4 pb-[8.25rem] pt-10 sm:px-6 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="mx-auto grid max-w-[1440px] grid-cols-1 items-end gap-6 px-4 pb-0 pt-10 sm:px-6 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="min-w-0 lg:pb-8">
             <div className="flex flex-wrap items-center gap-3">
               <LiveLamp label={running ? "On air" : "Off air"} />
@@ -248,19 +255,11 @@ export default function AutoPage() {
 
           {/* the anchor holds the frame while the desk works */}
           <AnchorBull
-            className="mx-auto -mb-[8.25rem] hidden w-full self-end lg:block lg:h-[52vh] lg:max-w-none"
+            className="mx-auto hidden w-full self-end lg:block lg:h-[48vh] lg:max-w-none"
             sizes="(max-width: 1024px) 0px, 420px"
           />
         </div>
 
-        {/* the lower third re-keys on every cut to a new market */}
-        <LowerThird
-          key={current ? current.index : "standby"}
-          brandSuffix="Night desk"
-          headline={current ? current.market.question : "The desk is standing by"}
-          strap={statusLine}
-          className="absolute inset-x-0 bottom-0 z-10"
-        />
       </section>
 
       {lastDecision?.decision && (

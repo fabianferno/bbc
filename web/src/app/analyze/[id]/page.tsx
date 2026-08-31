@@ -14,9 +14,10 @@ import { EvidenceFeed } from "@/components/evidence-feed";
 import { GraphCanvas } from "@/components/graph-canvas";
 import { OnchainPanel } from "@/components/onchain-panel";
 import { OntologyPanel } from "@/components/ontology-panel";
-import { LiveLamp, LowerThird, Slug, StudioClock } from "@/components/broadcast";
+import { LiveLamp, Slug, StudioClock } from "@/components/broadcast";
 import { Button, Pill, SectionLabel } from "@/components/ui";
 import { api } from "@/lib/api";
+import { useOnAir } from "@/components/channel-frame";
 import { useRequireAuth } from "@/lib/auth";
 import type { Market } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -116,6 +117,13 @@ export default function AnalyzePage({ params }: { params: Promise<{ id: string }
       ? PHASE_COPY[state.phase]
       : `${market?.venue ?? "Market"} · ${market?.category ?? "uncategorised"} — put it on air to see the desk work it`;
 
+  useOnAir({
+    headline: market?.question ?? marketId,
+    strap,
+    brandSuffix: "On air",
+    cut: started ? "live" : "standby",
+  });
+
   return (
     <div>
       {/* ── the headline ────────────────────────────────────────────── */}
@@ -138,6 +146,10 @@ export default function AnalyzePage({ params }: { params: Promise<{ id: string }
             <span className="h-3 w-px bg-rule" aria-hidden />
             <StudioClock className="chyron text-dim" />
           </div>
+
+          <h1 className="headline mt-6 max-w-[24ch] text-[clamp(2rem,5vw,3.4rem)] text-white">
+            {market?.question ?? marketId}
+          </h1>
 
           <div className="mt-6 flex flex-wrap items-end justify-between gap-5">
             <div className="min-w-0 flex-1">
@@ -192,13 +204,6 @@ export default function AnalyzePage({ params }: { params: Promise<{ id: string }
             </div>
           </div>
         </div>
-
-        <LowerThird
-          key={started ? "live" : "standby"}
-          brandSuffix="On air"
-          headline={market?.question ?? marketId}
-          strap={strap}
-        />
       </section>
 
       <div className="mx-auto max-w-[1500px] px-4 py-8 sm:px-6">

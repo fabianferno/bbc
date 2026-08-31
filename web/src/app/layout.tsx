@@ -64,10 +64,10 @@ export default function RootLayout({
           made, understands "autonomous trader, live, on Solana", and either
           watches the reasoning run or checks the Bull Pool.
           FIRST VIEWPORT: Studio full-bleed. Anchor bull camera-right at ~55vh.
-          Red lower third pinned across the bottom of the hero carrying the
-          agent's latest decision as a headline, strap and clock beneath it.
-          Primary action ("Run a market live") sits in the strap row. The tape
-          rolls fixed at the foot of every page.
+          Red lower third fixed across the foot of the viewport on every
+          route, carrying whatever that page has on air as a headline, strap
+          and clock, with the tape rolling directly beneath it. Pages publish
+          to the bar through useOnAir; they never draw it themselves.
           FORM: Broadcast news channel — pinned by the user's brief and
           reference frame, so the direction roll does not apply.
           FINISH: unreviewed and undocumented is unfinished; this build ends
@@ -76,8 +76,7 @@ export default function RootLayout({
         <Providers>
           <SiteHeader />
           <FaucetPrompt />
-          <main className="relative z-10 pb-14">{children}</main>
-          <ChannelFrame />
+          <ChannelFrame>{children}</ChannelFrame>
         </Providers>
       </body>
     </html>
