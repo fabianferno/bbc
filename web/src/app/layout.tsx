@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/site-header";
 import { Providers } from "@/components/providers";
 import { FaucetPrompt } from "@/components/faucet-prompt";
 import { ChannelFrame } from "@/components/channel-frame";
+import { AnchorVideo } from "@/components/anchor-video";
 import "./globals.css";
 
 const sourceSerif = Source_Serif_4({
@@ -77,6 +78,7 @@ export default function RootLayout({
           <SiteHeader />
           <FaucetPrompt />
           <ChannelFrame>{children}</ChannelFrame>
+          <AnchorVideo />
         </Providers>
       </body>
     </html>

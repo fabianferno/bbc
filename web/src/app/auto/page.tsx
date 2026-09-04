@@ -10,7 +10,6 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { Radio, RotateCw, ArrowUpRight } from "lucide-react";
 import {
-  AnchorBull,
   BreakingCutIn,
   LiveLamp,
   Slug,
@@ -209,7 +208,7 @@ export default function AutoPage() {
     <div>
       {/* ── on-air header ───────────────────────────────────────────── */}
       <section className="studio relative isolate overflow-hidden border-b border-rule">
-        <div className="mx-auto grid max-w-[1440px] grid-cols-1 items-end gap-6 px-4 pb-0 pt-10 sm:px-6 lg:grid-cols-[1.2fr_0.8fr]">
+        <div className="mx-auto grid max-w-[1440px] grid-cols-1 items-end gap-6 px-4 pb-0 pt-10 sm:px-6">
           <div className="min-w-0 lg:pb-8">
             <div className="flex flex-wrap items-center gap-3">
               <LiveLamp label={running ? "On air" : "Off air"} />
@@ -253,11 +252,6 @@ export default function AutoPage() {
             />
           </div>
 
-          {/* the anchor holds the frame while the desk works */}
-          <AnchorBull
-            className="mx-auto hidden w-full self-end lg:block lg:h-[48vh] lg:max-w-none"
-            sizes="(max-width: 1024px) 0px, 420px"
-          />
         </div>
 
       </section>

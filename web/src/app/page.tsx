@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { RefreshCw, Radio, Ticket, Eye } from "lucide-react";
 import { MarketCard } from "@/components/market-card";
-import { AnchorBull } from "@/components/broadcast";
 import { SectionLabel, Button, Pill, ReadoutStrip } from "@/components/ui";
 import { api, type MarketsResp, type MetricsResp } from "@/lib/api";
 import { useOnAir } from "@/components/channel-frame";
@@ -72,6 +71,11 @@ export default function Home() {
 
   const bulletin = bulletins[slot % bulletins.length];
 
+  // the rota puts the live markets in slots 1..5 (see `bulletins`); the studio
+  // monitor follows whichever one is on air, and falls back to the first market
+  // while a standby card is up so the panel is never empty.
+  const onAir = markets[slot - 1] ?? markets[0] ?? null;
+
   useOnAir({
     headline: bulletin.headline,
     strap: bulletin.strap,
@@ -90,7 +94,7 @@ export default function Home() {
     <div>
       {/* ── the studio ────────────────────────────────────────────────── */}
       <section className="studio relative isolate overflow-hidden">
-        <div className="relative mx-auto grid max-w-[1440px] grid-cols-1 items-end gap-6 px-4 pb-0 pt-10 sm:px-6 lg:min-h-[68vh] lg:grid-cols-[1.15fr_0.85fr] lg:gap-4 lg:pt-14">
+        <div className="relative mx-auto grid max-w-[1440px] grid-cols-1 items-end gap-6 px-4 pb-0 pt-10 sm:px-6 lg:min-h-[60vh] lg:grid-cols-[1.25fr_minmax(340px,0.75fr)] lg:gap-10 lg:pt-14">
           <div className="pb-2 lg:pb-10">
             <h1 className="headline max-w-[16ch] text-[clamp(2.6rem,7vw,4.75rem)] text-white">
               The market moves. Somebody has to explain why.
@@ -123,12 +127,52 @@ export default function Home() {
             </div>
           </div>
 
-          {/* the anchor — runs behind the strap, as a presenter does on air */}
-          <AnchorBull
-            priority
-            className="mx-auto h-[46vh] w-full max-w-[400px] self-end sm:h-[54vh] sm:max-w-[460px] lg:h-[66vh] lg:max-w-none"
-            sizes="(max-width: 1024px) 70vw, 560px"
-          />
+          {/* the studio monitor — the desk's own feed, cutting with the rota */}
+          <aside className="monitor monitor-lit relative hidden overflow-hidden p-5 lg:block lg:self-end lg:mb-10">
+            <div className="flex items-center gap-2">
+              <span className="lamp" aria-hidden />
+              <span className="chyron text-red">On air now</span>
+              <span className="ml-auto chyron numeric text-faint">
+                {String((slot % bulletins.length) + 1).padStart(2, "0")} /{" "}
+                {String(bulletins.length).padStart(2, "0")}
+              </span>
+            </div>
+
+            <div key={slot} className="cut-in mt-4">
+              <p className="chyron text-faint">
+                {onAir ? onAir.category || onAir.venue : "Standby"}
+              </p>
+              <p className="mt-2 line-clamp-3 text-[19px] leading-snug text-white">
+                {onAir ? onAir.question : "Newsroom feed offline — start the agent API to bring the desk on air"}
+              </p>
+              <div className="mt-5 flex items-end gap-3">
+                <span className="numeric text-[2.75rem] leading-none text-white">
+                  {onAir?.last_price_yes == null
+                    ? "—"
+                    : `${Math.round(onAir.last_price_yes * 100)}%`}
+                </span>
+                <span className="mb-1 text-[13px] text-dim">market on YES</span>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-rule">
+              {[
+                {
+                  label: "Traces anchored",
+                  value: metrics ? String(metrics.anchor_count) : "—",
+                },
+                {
+                  label: "Inference today",
+                  value: metrics ? `$${metrics.llm_cost_today.toFixed(3)}` : "—",
+                },
+              ].map((c) => (
+                <div key={c.label} className="bg-[#0f141b] px-4 py-3">
+                  <p className="chyron text-faint">{c.label}</p>
+                  <p className="numeric mt-1 text-[15px] text-white">{c.value}</p>
+                </div>
+              ))}
+            </div>
+          </aside>
         </div>
       </section>
 
