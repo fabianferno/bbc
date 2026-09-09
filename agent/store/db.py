@@ -224,6 +224,7 @@ def open_position(conn: Database, p: dict[str, Any]) -> int:
         "_id": pid,
         "market_id": p["market_id"],
         "venue": p["venue"],
+        "leg": p.get("leg") or "slow",
         "side": p["side"],
         "shares": p["shares"],
         "entry_price": p["entry_price"],
@@ -242,6 +243,9 @@ def open_position(conn: Database, p: dict[str, Any]) -> int:
         "opened_at": _now(),
         "closed_at": None,
     })
+    if p["venue"] != "simulated":
+        from agent.treasury import ledger  # local import: ledger imports db
+        ledger.record("entry", -float(p["notional_in"]), position_id=pid, leg=p.get("leg") or "slow")
     return pid
 
 
@@ -275,6 +279,11 @@ def close_position(
             "closed_at": _now(),
         }},
     )
+    if pos.get("venue") != "simulated":
+        from agent.treasury import ledger
+        ledger.record(
+            "settlement", float(notional_out), position_id=pos_id, leg=pos.get("leg") or "slow",
+        )
 
 
 def open_positions(conn: Database) -> list[dict[str, Any]]:

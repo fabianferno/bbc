@@ -53,6 +53,7 @@ class LiveExecutor:
         target_price: float,
         decision_id: int | None,
         force_taker: bool = False,
+        leg: str = "slow",
     ) -> dict[str, Any]:
         token = self._token_id(market, side)
         size_shares = usd_size / max(1e-6, target_price)
@@ -99,6 +100,7 @@ class LiveExecutor:
                     "entry_decision_id": decision_id,
                     "venue_entry_order": venue_order_id,
                     "p_yes_at_entry": fill_price if side == "YES" else (1 - fill_price),
+                    "leg": leg,
                 })
         return {"order_db_id": order_id, "venue_order_id": venue_order_id, "status": status}
 

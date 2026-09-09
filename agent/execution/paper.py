@@ -39,6 +39,7 @@ class ManifoldExecutor:
         usd_size: float,
         target_price: float,
         decision_id: int | None,
+        leg: str = "slow",
     ) -> dict[str, Any]:
         # Manifold uses mana 1:1 with USD for our purposes (no fees on play money).
         # limitProb is in [0.01, 0.99] with step 0.01.
@@ -85,6 +86,7 @@ class ManifoldExecutor:
                 "notional_in": usd_size, "entry_decision_id": decision_id,
                 "venue_entry_order": bet_id,
                 "p_yes_at_entry": fill_price if side == "YES" else (1 - fill_price),
+                "leg": leg,
             })
         log.info("paper.entry.filled", venue="manifold", market_id=market["id"],
                  side=side, usd=usd_size, fill=fill_price, pos_id=pos_id)
@@ -137,6 +139,7 @@ class SimulatedExecutor:
         usd_size: float,
         target_price: float,
         decision_id: int | None,
+        leg: str = "slow",
     ) -> dict[str, Any]:
         fill_price = target_price
         shares = usd_size / max(1e-6, fill_price)
@@ -146,6 +149,7 @@ class SimulatedExecutor:
                 "side": side, "shares": shares, "entry_price": fill_price,
                 "notional_in": usd_size, "entry_decision_id": decision_id,
                 "p_yes_at_entry": fill_price if side == "YES" else (1 - fill_price),
+                "leg": leg,
             })
         return {"position_id": pos_id, "shares": shares, "fill_price": fill_price}
 
