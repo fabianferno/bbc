@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Source_Serif_4, Archivo } from "next/font/google";
+import { Archivo } from "next/font/google";
+import localFont from "next/font/local";
 import { SiteHeader } from "@/components/site-header";
 import { Providers } from "@/components/providers";
 import { FaucetPrompt } from "@/components/faucet-prompt";
@@ -7,10 +8,15 @@ import { ChannelFrame } from "@/components/channel-frame";
 import { AnchorVideo } from "@/components/anchor-video";
 import "./globals.css";
 
-const sourceSerif = Source_Serif_4({
-  weight: ["600", "700"],
-  subsets: ["latin"],
-  variable: "--font-source-serif",
+// Alte Haas Grotesk — a Helvetica as it printed in an old Muller-Brockmann
+// book. Freeware; see src/app/fonts/LICENCE.txt, which ships with the files.
+const alteHaas = localFont({
+  src: [
+    { path: "./fonts/AlteHaasGroteskRegular.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/AlteHaasGroteskBold.woff2", weight: "700", style: "normal" },
+  ],
+  variable: "--font-alte-haas",
+  display: "swap",
 });
 
 const archivo = Archivo({
@@ -50,7 +56,7 @@ export default function RootLayout({
     // the font variables must live on <html>: `@theme inline` resolves
     // --font-head / --font-ui at :root, so declaring them on <body> leaves
     // every .headline falling through to the platform sans.
-    <html lang="en" className={`${sourceSerif.variable} ${archivo.variable}`}>
+    <html lang="en" className={`${alteHaas.variable} ${archivo.variable}`}>
       <body className="min-h-screen antialiased">
         {/*
           THESIS: A trading agent that reports itself. This is a 24h news

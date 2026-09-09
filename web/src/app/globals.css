@@ -33,7 +33,7 @@
   --color-hold: #f2b441;
   --color-monitor: #2f6fd0;
 
-  --font-head: var(--font-source-serif), Georgia, "Times New Roman", serif;
+  --font-head: var(--font-alte-haas), "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-ui: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
 }
 
@@ -105,8 +105,11 @@ body {
 
 .headline {
   font-family: var(--font-head);
-  font-weight: 600;
-  letter-spacing: -0.022em;
+  /* Alte Haas ships one bold cut — ask for 700 so the browser never has to
+     synthesise a 600 and smear the stems. */
+  font-weight: 700;
+  /* a grotesk sets tighter than the serif this replaced */
+  letter-spacing: -0.03em;
   line-height: 1.02;
 }
 
@@ -123,6 +126,9 @@ body {
   letter-spacing: 0.13em;
   text-transform: uppercase;
 }
+
+/* a tag is read at a glance, so it is tracked less than a section label */
+.chyron-tight { letter-spacing: 0.06em; }
 
 .numeric { font-variant-numeric: tabular-nums; }
 

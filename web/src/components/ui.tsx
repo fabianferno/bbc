@@ -32,22 +32,39 @@ export function Pill({
   tone?: "neutral" | "red" | "up" | "down" | "hold" | "monitor";
   className?: string;
 }) {
+  // The red tag is the only one that gets a plate — it is the on-air light.
+  // Every other tone is a chyron: a tally mark and the words, no container,
+  // because a box around a status reads as decoration rather than signal.
+  if (tone === "red") {
+    return (
+      <span
+        className={cn(
+          "chyron chyron-tight inline-flex items-center gap-1.5 bg-red px-2 py-1 text-white",
+          className,
+        )}
+      >
+        {children}
+      </span>
+    );
+  }
+
   const tones = {
-    neutral: "border-rule-lit text-dim",
-    red: "border-transparent bg-red text-white",
-    up: "border-up/45 bg-up/10 text-up",
-    down: "border-down/45 bg-down/10 text-down",
-    hold: "border-hold/45 bg-hold/10 text-hold",
-    monitor: "border-monitor/50 bg-monitor/10 text-monitor",
+    neutral: "text-dim",
+    up: "text-up",
+    down: "text-down",
+    hold: "text-hold",
+    monitor: "text-monitor",
   } as const;
+
   return (
     <span
       className={cn(
-        "chyron inline-flex items-center gap-1.5 border px-2 py-0.5",
+        "chyron chyron-tight inline-flex items-center gap-1.5",
         tones[tone],
         className,
       )}
     >
+      <span className="size-2 shrink-0 bg-current" aria-hidden />
       {children}
     </span>
   );
