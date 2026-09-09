@@ -57,14 +57,42 @@ def seed_if_empty() -> None:
     record("seed", amount)
 
 
+def refresh_high_water_mark() -> float:
+    """Ratchet the stored HWM up to current equity. Idempotent; returns the HWM.
+
+    Split out of `record()` so a multi-write settlement can refresh the HWM ONCE,
+    at its final state, instead of once per write.
+    """
+    eq = equity()
+    with db.connect() as conn:
+        doc = conn["treasury"].find_one({"_id": TREASURY_DOC_ID}) or {}
+        hwm = max(float(doc.get("high_water_mark") or 0.0), eq)
+        conn["treasury"].update_one(
+            {"_id": TREASURY_DOC_ID},
+            {"$set": {"high_water_mark": hwm, "updated_at": _now()}},
+            upsert=True,
+        )
+    return hwm
+
+
 def record(
     kind: str,
     amount: float,
     *,
     position_id: int | None = None,
     leg: str | None = None,
+    refresh_hwm: bool = True,
 ) -> float:
-    """Append one event, refresh the cached balance and HWM, return the new balance."""
+    """Append one event, refresh the cached balance and HWM, return the new balance.
+
+    Pass `refresh_hwm=False` when this event is one of SEVERAL writes settling a
+    single economic action, and a later write will refresh the HWM at the true
+    final state. A profitable close writes `settlement` (full proceeds) and then
+    `flywheel_split` (the 35%+15% that leaves the book); ratcheting the HWM on the
+    first would pin it to an equity peak the book held only between the two writes,
+    and since the HWM never falls, every later drawdown would be measured against
+    an unreachable peak — tripping the kill-switch on a PROFIT.
+    """
     if kind not in KINDS:
         raise ValueError(f"unknown treasury event kind: {kind}")
     with db.connect() as conn:
@@ -82,15 +110,17 @@ def record(
                 "created_at": _now(),
             }
         )
-        doc = conn["treasury"].find_one({"_id": TREASURY_DOC_ID}) or {}
         # HWM tracks EQUITY (cash + notional deployed in open positions), not cash.
         # Every event that moves equity is written through `record()`, and each one is
         # appended AFTER the position row it refers to has been inserted/updated — so
         # `deployed()` here already reflects the position change this event settles.
         # An "entry" therefore leaves equity flat (cash down, deployed up) instead of
-        # looking like a loss, and refreshing the HWM here stays sufficient: nothing
-        # else in the system changes equity.
-        hwm = max(float(doc.get("high_water_mark") or 0.0), round(new_balance + deployed(), 6))
+        # looking like a loss.
+        doc = conn["treasury"].find_one({"_id": TREASURY_DOC_ID}) or {}
+        stored_hwm = float(doc.get("high_water_mark") or 0.0)
+        hwm = (
+            max(stored_hwm, round(new_balance + deployed(), 6)) if refresh_hwm else stored_hwm
+        )
         conn["treasury"].update_one(
             {"_id": TREASURY_DOC_ID},
             {"$set": {"balance": new_balance, "high_water_mark": hwm, "updated_at": _now()}},

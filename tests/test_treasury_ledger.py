@@ -225,3 +225,72 @@ def test_positions_today_pnl_matches_between_multi_partial_and_single_full_close
         full_path_total = db.positions_today_pnl(conn) - before_b
 
     assert partial_path_total == full_path_total == 200.0
+
+
+def test_hwm_does_not_overshoot_on_a_profitable_settlement():
+    """One settlement must produce ONE HWM update, at the final equity.
+
+    A profitable close writes `settlement` (full proceeds) then `flywheel_split`
+    (the outflow). If each write ratcheted the HWM, the mark would capture the
+    intermediate 100%-of-profit equity that the book never durably held — and since
+    the HWM never falls, every later drawdown would be measured against an
+    unreachable peak, tripping the kill-switch on a PROFIT.
+    """
+    ledger.seed_if_empty()
+    with db.connect() as conn:
+        pid = db.open_position(conn, {
+            "market_id": "manifold:hwm1", "venue": "manifold", "side": "YES",
+            "shares": 10.0, "entry_price": 0.5, "notional_in": 1000.0, "leg": "fast",
+        })
+        db.close_position(
+            conn, pid, exit_price=0.75, notional_out=1500.0,
+            exit_decision_id=None, venue_exit_order=None, p_yes_at_exit=0.75,
+        )
+    assert ledger.equity() == 10250.0        # 10000 + 50% of the 500 profit
+    assert ledger.high_water_mark() == 10250.0  # NOT 10500.0
+    assert ledger.drawdown() == 0.0
+
+
+def test_hwm_refreshes_once_on_a_losing_settlement():
+    """No flywheel event fires, so the settlement write must refresh the HWM itself."""
+    ledger.seed_if_empty()
+    with db.connect() as conn:
+        pid = db.open_position(conn, {
+            "market_id": "manifold:hwm2", "venue": "manifold", "side": "YES",
+            "shares": 10.0, "entry_price": 0.5, "notional_in": 1000.0, "leg": "fast",
+        })
+        db.close_position(
+            conn, pid, exit_price=0.25, notional_out=500.0,
+            exit_decision_id=None, venue_exit_order=None, p_yes_at_exit=0.25,
+        )
+    assert ledger.equity() == 9500.0
+    assert ledger.high_water_mark() == 10000.0  # the pre-loss peak, unchanged
+    assert ledger.drawdown() == 0.05
+
+
+def test_hwm_refreshes_on_a_partial_close(monkeypatch):
+    """A partial close never fires the flywheel, so its settlement write refreshes."""
+    from agent.treasury import flywheel
+
+    monkeypatch.setattr(flywheel, "ansem_price_usd", lambda: (0.02, "test"))
+    ledger.seed_if_empty()
+    with db.connect() as conn:
+        pid = db.open_position(conn, {
+            "market_id": "manifold:hwm3", "venue": "manifold", "side": "YES",
+            "shares": 100.0, "entry_price": 0.5, "notional_in": 1000.0, "leg": "fast",
+        })
+        # sell half the shares for 750: cash 9000 + 750, deployed 500 → equity 10250
+        db.close_position(
+            conn, pid, exit_price=0.75, notional_out=750.0, shares_closed=50.0,
+            exit_decision_id=None, venue_exit_order=None, p_yes_at_exit=0.75,
+        )
+        assert ledger.equity() == 10250.0
+        assert ledger.high_water_mark() == 10250.0
+        # terminal slice: the flywheel fires once, on the full-position pnl
+        db.close_position(
+            conn, pid, exit_price=0.75, notional_out=750.0, shares_closed=50.0,
+            exit_decision_id=None, venue_exit_order=None, p_yes_at_exit=0.75,
+        )
+    assert ledger.equity() == 10250.0     # 10000 + 50% of the 500 profit
+    assert ledger.high_water_mark() == 10250.0
+    assert ledger.drawdown() == 0.0

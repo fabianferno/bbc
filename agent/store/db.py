@@ -321,11 +321,19 @@ def close_position(
         )
     if pos.get("venue") != "simulated":
         from agent.treasury import flywheel, ledger
+        # A profitable terminal close settles in TWO ledger writes: the full proceeds,
+        # then the flywheel outflow. Suppress the HWM refresh on the first so the mark
+        # is never pinned to the intermediate equity the book holds only between them,
+        # and refresh once at the end — after the flywheel, whether or not it wrote
+        # anything (it is idempotent per position and can no-op on a replay).
+        will_flywheel = (not is_partial) and pnl > 0
         ledger.record(
             "settlement", float(notional_out), position_id=pos_id, leg=pos.get("leg") or "slow",
+            refresh_hwm=not will_flywheel,
         )
-        if not is_partial and pnl > 0:
+        if will_flywheel:
             flywheel.on_settlement(pos_id, pnl)
+            ledger.refresh_high_water_mark()
 
 
 def open_positions(conn: Database) -> list[dict[str, Any]]:
