@@ -115,7 +115,7 @@ FastAPI sidecar  (agent/api)  ── streams ontology→entities→graph→decis
         │                                   ▼
 agent/onchain/  (Solana devnet: anchor the trace hash in a memo transaction)
         ▼
-MongoDB (graph_runs/nodes/edges, trace_blobs, onchain_anchors)
+Supabase/Postgres (graph_runs/nodes/edges, trace_blobs, onchain_anchors)
 ```
 
 Design spec (historical, pre-rename): [`docs/superpowers/specs/2026-05-25-openmind-graphrag-prediction-agent-design.md`](./docs/superpowers/specs/2026-05-25-openmind-graphrag-prediction-agent-design.md).
@@ -128,9 +128,15 @@ Design spec (historical, pre-rename): [`docs/superpowers/specs/2026-05-25-openmi
 uv venv && source .venv/bin/activate
 uv pip install -e ".[dev]"
 cp .env.example .env        # fill in AWS (Bedrock/Nova), Exa, the Solana wallet key,
-                             # AGENT_TREASURY_SEED and ANSEM_TOKEN_MINT
+                             # Supabase URL/keys, AGENT_TREASURY_SEED and ANSEM_TOKEN_MINT
 mkdir -p data logs
-python -m agent init-db     # also seeds the notional treasury ledger
+```
+
+Apply the schema once per Supabase project — `init-db` no longer creates it (a publishable
+key cannot run DDL): open the Supabase SQL editor and run `agent/store/schema.sql`. Then:
+
+```bash
+python -m agent init-db     # readiness probe + seeds the notional treasury ledger
 
 # run the API sidecar
 uvicorn agent.api.server:app --port 8000

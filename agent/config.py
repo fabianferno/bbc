@@ -91,8 +91,6 @@ class Settings(BaseSettings):
     polymarket_chain_id: int = 137
 
     # ---- storage / obs ----
-    mongo_db_url: str = ""
-    mongo_db_name: str = "openmind"
     supabase_url: str | None = None
     supabase_publishable_key: str | None = None
     supabase_service_role_key: str | None = None  # server-only; never NEXT_PUBLIC_*

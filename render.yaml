@@ -10,16 +10,18 @@ services:
     envVars:
       - key: AGENT_MODE
         value: paper
-      - key: ARC_ENABLED
+      - key: SOLANA_ENABLED
         value: "true"
-      - key: ARC_RPC_URL
-        value: https://rpc.testnet.arc.network
-      - key: ARC_CHAIN_ID
-        value: "5042002"
+      - key: SOLANA_CLUSTER
+        value: devnet
+      - key: SOLANA_RPC_URL
+        value: https://api.devnet.solana.com
       - key: BEDROCK_MODEL_ID
         value: apac.amazon.nova-lite-v1:0
       - key: GRAPHRAG_ENABLED
         value: "true"
+      - key: SEARCH_PROVIDER
+        value: exa
       # --- secrets: set these in the dashboard ---
       - key: AWS_REGION
         sync: false
@@ -27,9 +29,15 @@ services:
         sync: false
       - key: AWS_SECRET_ACCESS_KEY
         sync: false
-      - key: TAVILY_API_KEY
+      - key: EXA_API_KEY
         sync: false
       - key: MANIFOLD_API_KEY
         sync: false
-      - key: ARC_TESTNET_WALLET_PRIVATE_KEY
+      - key: SOLANA_KEYPAIR_PATH
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false

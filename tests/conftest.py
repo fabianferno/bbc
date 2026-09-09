@@ -12,8 +12,6 @@ from pathlib import Path
 
 # ---- env setup (runs before any agent imports) ----
 _TMP = Path(tempfile.mkdtemp(prefix="bbc-test-"))
-os.environ["MONGO_DB_URL"] = "mongodb://localhost:27017"
-os.environ["MONGO_DB_NAME"] = "bbc_test"
 os.environ.setdefault("SUPABASE_URL", "https://test.supabase.co")
 os.environ.setdefault("SUPABASE_PUBLISHABLE_KEY", "test-publishable-key")
 os.environ["AGENT_LOG_PATH"] = str(_TMP / "test.jsonl")
@@ -33,7 +31,7 @@ def _store(monkeypatch):
     """Give every test a fresh in-memory PostgREST store.
 
     `monkeypatch.setattr` on the module-level client handle is undone after each
-    test, so isolation matches what the old mongomock fixture provided: a new
+    test, so isolation matches the pre-migration fixture's behavior: a new
     empty store per test, with nothing leaking across.
     """
     monkeypatch.setattr(db, "_client", FakePostgrest())
