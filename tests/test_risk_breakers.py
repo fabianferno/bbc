@@ -71,6 +71,27 @@ def test_concentration_cap_does_not_block_an_empty_book():
     assert not safety.entry_allowed(usd_size=400.0, leg="fast", category="politics").tripped
 
 
+def test_entry_caps_still_enforced_on_unseeded_treasury():
+    """An unseeded treasury must fail closed to the bankroll fallback, not bypass caps."""
+    from agent.config import settings
+
+    # Deliberately do NOT call ledger.seed_if_empty(): balance() is 0.
+    oversized = settings.agent_bankroll * safety.MAX_POSITION_FRACTION + 1.0
+    chk = safety.entry_allowed(usd_size=oversized, leg="fast", category="politics")
+    assert chk.tripped
+    assert "position_cap" in chk.name
+
+
+def test_entry_rejects_with_no_book_at_all(monkeypatch):
+    from agent.config import settings
+
+    # Unseeded treasury AND no bankroll fallback: must reject, not silently allow.
+    monkeypatch.setattr(settings, "agent_bankroll", 0.0)
+    chk = safety.entry_allowed(usd_size=1.0, leg="fast", category="politics")
+    assert chk.tripped
+    assert chk.name == "entry.no_book"
+
+
 def test_no_leverage_size_never_exceeds_sleeve_headroom():
     """No leverage: sizing draws only against a positive sleeve, with no borrowing path."""
     from agent.strategy import sizing

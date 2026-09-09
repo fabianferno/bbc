@@ -136,18 +136,23 @@ def entry_allowed(*, usd_size: float, leg: str, category: str) -> BreakerCheck:
     of `all_clear()`. Returns a tripped BreakerCheck naming the limit that blocked
     the entry, or an untripped one named `entry_allowed`.
     """
-    treasury = ledger.balance()
-    if treasury <= 0:
-        return BreakerCheck("entry_allowed", False)
+    # Same fallback book as sizing.py and check_daily_loss, so all three risk call
+    # sites agree on what "the book" means. With no book at all there is no
+    # denominator, so no position can be justified — fail closed, not open.
+    book = ledger.balance() or settings.agent_bankroll
+    if book <= 0:
+        return BreakerCheck(
+            "entry.no_book", True, "treasury unseeded and no bankroll fallback",
+        )
 
-    if usd_size > treasury * MAX_POSITION_FRACTION:
+    if usd_size > book * MAX_POSITION_FRACTION:
         return BreakerCheck(
             "entry.position_cap", True,
-            f"size={usd_size:.2f} > {MAX_POSITION_FRACTION:.0%} of treasury {treasury:.2f}",
+            f"size={usd_size:.2f} > {MAX_POSITION_FRACTION:.0%} of treasury {book:.2f}",
         )
 
     cap = FAST_LEG_DEPLOYMENT_CAP if leg == legs.FAST else SLOW_LEG_CAP
-    if ledger.deployed(leg) + usd_size > treasury * cap:
+    if ledger.deployed(leg) + usd_size > book * cap:
         return BreakerCheck(
             "entry.leg_allocation", True,
             f"leg={leg} deployed+new > {cap:.0%} of treasury",
@@ -160,7 +165,7 @@ def entry_allowed(*, usd_size: float, leg: str, category: str) -> BreakerCheck:
     # would reject every opening trade. The denominator is therefore the larger of
     # the book after this entry and the fast-leg deployment target, which lets the
     # book be built up and starts biting once real exposure exists.
-    denominator = max(total + usd_size, treasury * FAST_LEG_DEPLOYMENT_CAP)
+    denominator = max(total + usd_size, book * FAST_LEG_DEPLOYMENT_CAP)
     if denominator > 0 and (by_cat.get(cat, 0.0) + usd_size) / denominator > CATEGORY_CONCENTRATION_CAP:
         return BreakerCheck(
             "entry.category_concentration", True,
