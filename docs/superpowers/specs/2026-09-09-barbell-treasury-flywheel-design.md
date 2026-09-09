@@ -144,6 +144,21 @@ Target split, enforced in sizing:
 If a leg's sleeve is exhausted, `size_position` returns 0 with reason
 `leg_sleeve_full`. **A leg never borrows from the other sleeve.**
 
+### Sleeve ceiling vs. deployment cap
+
+These are two distinct limits and both bind:
+
+- The **sleeve** (80% fast / 20% slow) is the share of treasury a leg is
+  *entitled to*. It governs how capital is divided between the legs.
+- The **deployment cap** (§5: fast-leg deployed <= 25% of treasury) is how much
+  may be *at risk simultaneously*. It governs how much of the entitlement is
+  actually in the market at any moment, keeping at least 75% of treasury in
+  reserve as published.
+
+So the fast leg is entitled to 80% of the book but may never have more than 25%
+of it deployed at once. The binding constraint at entry time is whichever is
+lower, which in practice is always the deployment cap.
+
 `size_position` gains a `leg` parameter and computes its bankroll base as
 `treasury_balance * sleeve_fraction(leg)`. The existing fractional-Kelly maths,
 the 5% cap, and the per-category calibration multiplier are unchanged and apply
