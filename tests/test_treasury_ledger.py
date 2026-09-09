@@ -152,3 +152,71 @@ def test_full_close_still_marks_closed_and_sets_closed_at():
     assert pos["status"] == "closed"
     assert pos["closed_at"] is not None
     assert pos["pnl"] == 200.0
+
+
+def test_final_slice_of_multi_partial_close_reports_true_total_pnl():
+    ledger.seed_if_empty()
+    with db.connect() as conn:
+        pid_a = db.open_position(conn, {
+            "market_id": "manifold:p4a", "venue": "manifold", "side": "YES",
+            "shares": 10.0, "entry_price": 0.5, "notional_in": 500.0, "leg": "fast",
+        })
+        db.close_position(
+            conn, pid_a, exit_price=0.7, notional_out=280.0,
+            exit_decision_id=None, venue_exit_order=None, p_yes_at_exit=0.7,
+            shares_closed=4.0,
+        )
+        db.close_position(
+            conn, pid_a, exit_price=0.7, notional_out=420.0,
+            exit_decision_id=None, venue_exit_order=None, p_yes_at_exit=0.7,
+            shares_closed=6.0,
+        )
+        pos_a = conn["positions"].find_one({"_id": pid_a})
+
+    with db.connect() as conn:
+        pid_b = db.open_position(conn, {
+            "market_id": "manifold:p4b", "venue": "manifold", "side": "YES",
+            "shares": 10.0, "entry_price": 0.5, "notional_in": 500.0, "leg": "fast",
+        })
+        db.close_position(
+            conn, pid_b, exit_price=0.7, notional_out=700.0,
+            exit_decision_id=None, venue_exit_order=None, p_yes_at_exit=0.7,
+        )
+        pos_b = conn["positions"].find_one({"_id": pid_b})
+
+    assert pos_a["pnl"] == pos_b["pnl"] == 200.0
+    assert pos_a["notional_out"] == pos_b["notional_out"] == 700.0
+
+
+def test_positions_today_pnl_matches_between_multi_partial_and_single_full_close():
+    with db.connect() as conn:
+        pid_a = db.open_position(conn, {
+            "market_id": "manifold:p5a", "venue": "manifold", "side": "YES",
+            "shares": 10.0, "entry_price": 0.5, "notional_in": 500.0, "leg": "fast",
+        })
+        before = db.positions_today_pnl(conn)
+        db.close_position(
+            conn, pid_a, exit_price=0.7, notional_out=280.0,
+            exit_decision_id=None, venue_exit_order=None, p_yes_at_exit=0.7,
+            shares_closed=4.0,
+        )
+        db.close_position(
+            conn, pid_a, exit_price=0.7, notional_out=420.0,
+            exit_decision_id=None, venue_exit_order=None, p_yes_at_exit=0.7,
+            shares_closed=6.0,
+        )
+        partial_path_total = db.positions_today_pnl(conn) - before
+
+    with db.connect() as conn:
+        pid_b = db.open_position(conn, {
+            "market_id": "manifold:p5b", "venue": "manifold", "side": "YES",
+            "shares": 10.0, "entry_price": 0.5, "notional_in": 500.0, "leg": "fast",
+        })
+        before_b = db.positions_today_pnl(conn)
+        db.close_position(
+            conn, pid_b, exit_price=0.7, notional_out=700.0,
+            exit_decision_id=None, venue_exit_order=None, p_yes_at_exit=0.7,
+        )
+        full_path_total = db.positions_today_pnl(conn) - before_b
+
+    assert partial_path_total == full_path_total == 200.0

@@ -230,6 +230,7 @@ def open_position(conn: Database, p: dict[str, Any]) -> int:
         "entry_price": p["entry_price"],
         "exit_price": None,
         "notional_in": p["notional_in"],
+        "notional_in_original": p["notional_in"],
         "notional_out": None,
         "pnl": None,
         "fees": 0.0,
@@ -291,13 +292,24 @@ def close_position(
             }},
         )
     else:
+        # Terminal branch: covers both a genuine one-shot full close (no prior
+        # partials — accumulators are at their defaults, so this reduces to the
+        # original behaviour) and the final slice of a multi-partial sequence.
+        # Recompute pnl from the ORIGINAL total cost basis and the TOTAL proceeds
+        # across every slice, rather than accumulating slice-by-slice, so a
+        # multi-step exit's stored pnl always equals total proceeds minus total
+        # original cost basis minus total fees — the same invariant
+        # `db.positions_today_pnl` / the daily-loss breaker rely on.
+        original_notional_in = float(pos.get("notional_in_original") or pos["notional_in"])
         new_fees = float(pos.get("fees") or 0.0) + fees
-        pnl = notional_out - float(pos["notional_in"]) - fees
+        total_notional_out = float(pos.get("notional_out") or 0.0) + notional_out
+        pnl = total_notional_out - original_notional_in - new_fees
         conn["positions"].update_one(
             {"_id": pos_id},
             {"$set": {
                 "exit_price": exit_price,
-                "notional_out": notional_out,
+                "notional_in": original_notional_in,
+                "notional_out": total_notional_out,
                 "pnl": pnl,
                 "fees": new_fees,
                 "status": "closed",
