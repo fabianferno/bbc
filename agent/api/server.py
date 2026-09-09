@@ -440,6 +440,13 @@ def record_anchor_tx(body: AnchorRecordIn) -> dict[str, Any]:
     h = body.tx_hash  # base58 Solana signature
     explorer_url = explorer_tx_url(h)
     with db.connect() as conn:
+        # `decision_id` and `market_id` are caller-supplied and FK-constrained in
+        # Postgres. A stale id was silently accepted under Mongo; unchecked it now
+        # raises a foreign-key violation and surfaces as a 500 on a bad request.
+        if body.decision_id is not None and db.get_decision(conn, body.decision_id) is None:
+            raise HTTPException(422, f"unknown decision_id {body.decision_id}")
+        if body.market_id is not None and db.get_market(conn, body.market_id) is None:
+            raise HTTPException(422, f"unknown market_id {body.market_id}")
         db.record_anchor(conn, {
             "decision_id": body.decision_id, "market_id": body.market_id, "kind": body.kind,
             "trace_hash": body.trace_hash, "tx_hash": h, "explorer_url": explorer_url,

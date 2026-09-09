@@ -101,7 +101,10 @@ def on_settlement(position_id: int, realized_pnl: float) -> dict[str, Any] | Non
 
 def events(limit: int = 50) -> list[dict[str, Any]]:
     with db.connect() as conn:
-        res = conn.table("flywheel_events").select("*").order("id", desc=True).limit(limit).execute()
+        res = (
+            conn.table("flywheel_events").select("*")
+            .order("id", desc=True).limit(limit).execute()
+        )
         return [db._row(e) for e in db._rows(res)]
 
 
@@ -110,7 +113,9 @@ def totals() -> dict[str, Any]:
     treasury_usd = ansem_usd = ansem_qty = reserve_usd = profit = 0.0
     n = 0
     with db.connect() as conn:
-        for e in db._rows(conn.table("flywheel_events").select("*").execute()):
+        # Paged: totals are a full replay of the event log, so a truncated
+        # read would silently under-report every aggregate below.
+        for e in db.fetch_all(lambda: conn.table("flywheel_events").select("*")):
             n += 1
             profit += float(e.get("realized_pnl") or 0.0)
             treasury_usd += float(e.get("treasury_share") or 0.0)

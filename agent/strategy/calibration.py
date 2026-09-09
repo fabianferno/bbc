@@ -82,20 +82,28 @@ def recompute(*, persist: bool = True) -> dict[str, CategoryMetrics]:
         # Score every entry decision against the eventual market resolution.
         per_cat: dict[str, list[tuple[float, float]]] = {}
         all_preds: list[tuple[float, float]] = []
+        # Paged: these are full-history reads, and PostgREST truncates an
+        # unbounded select at its max-rows cap with a 200, which would silently
+        # recalibrate sizing off a partial sample.
         entry_decisions = db._not_null(
-            db._rows(conn.table("decisions").select("*").eq("kind", "entry").execute()), "p_yes"
+            db.fetch_all(lambda: conn.table("decisions").select("*").eq("kind", "entry")),
+            "p_yes",
         )
-        closed_positions = db._rows(
-            conn.table("positions").select("*").eq("status", "closed").execute()
+        closed_positions = db.fetch_all(
+            lambda: conn.table("positions").select("*").eq("status", "closed")
         )
         # One batched market read instead of a per-row lookup.
         market_ids = list(
             {d["market_id"] for d in entry_decisions} | {p["market_id"] for p in closed_positions}
         )
-        markets: dict[Any, dict[str, Any]] = (
-            {m["id"]: m for m in db._rows(conn.table("markets").select("*").in_("id", market_ids).execute())}
-            if market_ids else {}
-        )
+        # Chunked: market ids are "venue:external_id" text, so a few thousand
+        # of them in one `.in_()` overflows the request line and returns 414.
+        markets: dict[Any, dict[str, Any]] = {
+            m["id"]: m
+            for m in db.fetch_in_chunks(
+                lambda: conn.table("markets").select("*"), "id", market_ids
+            )
+        }
 
         for d in entry_decisions:
             m = markets.get(d["market_id"])

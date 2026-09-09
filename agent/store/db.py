@@ -18,7 +18,7 @@ which would drop EVERY row, so null-exclusion is done in Python instead (see
 from __future__ import annotations
 
 import json
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from typing import Any
@@ -51,8 +51,26 @@ def init_db() -> None:
     """Readiness check. The schema itself is owned by `agent/store/schema.sql`,
     applied once by the operator in the Supabase SQL editor — a publishable key
     cannot run DDL. This is a cheap connectivity probe so `python -m agent
-    init-db` and the API startup still fail loudly on a misconfigured store."""
-    get_client().table("markets").select("id").limit(1).execute()
+    init-db` and the API startup still fail loudly on a misconfigured store.
+
+    It also probes one recent column per critical table, so a store running an
+    older `schema.sql` fails here with a named table/column instead of surfacing
+    later as a mid-cycle PostgREST error on a single write."""
+    client = get_client()
+    probes = {
+        "markets": "id",
+        "positions": "notional_in_original,leg",
+        "treasury": "high_water_mark",
+        "flywheel_events": "ansem_qty",
+    }
+    for table, cols in probes.items():
+        try:
+            client.table(table).select(cols).limit(1).execute()
+        except Exception as e:  # noqa: BLE001 — re-raised with the drift context
+            raise RuntimeError(
+                f"store schema check failed on {table}({cols}): {e}. "
+                f"Re-apply agent/store/schema.sql in the Supabase SQL editor."
+            ) from e
 
 
 def _rows(res: Any) -> list[dict[str, Any]]:
@@ -67,6 +85,74 @@ def _first(res: Any) -> dict[str, Any] | None:
     """`find_one` equivalent: the first row of a response, or None."""
     rows = _rows(res)
     return rows[0] if rows else None
+
+
+PAGE_SIZE = 1000
+"""PostgREST caps every response at the project's `Max rows` (Supabase default
+1000) and returns HTTP 200 — a truncated read is indistinguishable from a
+complete one. Every unbounded read must therefore go through `fetch_all`."""
+
+IN_CHUNK_SIZE = 200
+"""Ids per `.in_()` request. Market ids are `"venue:external_id"` text, so a few
+thousand of them in one filter overflows the HTTP request line and the server
+answers 414 instead of running the query."""
+
+
+def fetch_all(
+    make_query: Callable[[], Any], page_size: int = PAGE_SIZE
+) -> list[dict[str, Any]]:
+    """Read EVERY row a query matches, paging with `.range()` until a short page.
+
+    `make_query` is a factory, not a builder: `postgrest`'s `.range()` *appends*
+    `offset`/`limit` query params, so re-ranging one builder would send several
+    of each. Each page therefore gets a freshly built query.
+    """
+    out: list[dict[str, Any]] = []
+    offset = 0
+    while True:
+        page = _rows(make_query().range(offset, offset + page_size - 1).execute())
+        if not page:
+            return out
+        out.extend(page)
+        # Advance by what came BACK, not by `page_size`: if the server's max-rows
+        # cap is lower than `page_size`, every page is short, and stopping on a
+        # short page would truncate exactly the way the raw select does. The
+        # loop therefore ends only on an empty page, at the cost of one request.
+        offset += len(page)
+
+
+def fetch_in_chunks(
+    make_query: Callable[[], Any],
+    col: str,
+    values: Any,
+    *,
+    chunk_size: int = IN_CHUNK_SIZE,
+    page_size: int = PAGE_SIZE,
+) -> list[dict[str, Any]]:
+    """`.in_(col, values)` split across several requests and merged.
+
+    An empty `values` short-circuits to `[]`: PostgREST renders `in.()` for an
+    empty list and rejects it with a 400, so the caller would get a 500 rather
+    than the empty result the query actually means.
+    """
+    vals = list(dict.fromkeys(values))
+    if not vals:
+        return []
+    out: list[dict[str, Any]] = []
+    for i in range(0, len(vals), chunk_size):
+        chunk = vals[i : i + chunk_size]
+        out.extend(
+            fetch_all(lambda c=chunk: make_query().in_(col, c), page_size)  # type: ignore[misc]
+        )
+    return out
+
+
+def _is_duplicate_key(exc: Exception) -> bool:
+    """True when a PostgREST error is a unique/PK violation (SQLSTATE 23505)."""
+    code = getattr(exc, "code", None)
+    if code in ("23505", 23505):
+        return True
+    return "23505" in str(exc) or "duplicate key" in str(exc).lower()
 
 
 def _not_null(rows: list[dict[str, Any]], col: str) -> list[dict[str, Any]]:
@@ -127,16 +213,24 @@ def upsert_market(conn: Any, m: dict[str, Any]) -> str:
     # `$setOnInsert` for venue/external_id/seen_at, and an upsert that merged
     # them on every write would keep resetting `seen_at` to now.
     exists = _first(conn.table("markets").select("id").eq("id", market_id).limit(1).execute())
-    if exists is not None:
-        conn.table("markets").update(fields).eq("id", market_id).execute()
-    else:
-        conn.table("markets").insert({
-            "id": market_id,
-            "venue": m["venue"],
-            "external_id": m["external_id"],
-            "seen_at": now,
-            **fields,
-        }).execute()
+    if exists is None:
+        try:
+            conn.table("markets").insert({
+                "id": market_id,
+                "venue": m["venue"],
+                "external_id": m["external_id"],
+                "seen_at": now,
+                **fields,
+            }).execute()
+            return market_id
+        except Exception as e:  # noqa: BLE001 — see below
+            # Read-then-write is not atomic (Mongo's `$setOnInsert` was): a
+            # concurrent cycle can insert the same market between the check and
+            # this write, and Postgres then raises a PK violation. That is the
+            # same situation as `exists is not None`, so fall through to update.
+            if not _is_duplicate_key(e):
+                raise
+    conn.table("markets").update(fields).eq("id", market_id).execute()
     return market_id
 
 
@@ -147,10 +241,18 @@ def get_market(conn: Any, market_id: str) -> dict[str, Any] | None:
 def list_resolved_markets(
     conn: Any, *, category: str | None = None, limit: int | None = None
 ) -> list[dict[str, Any]]:
-    q = conn.table("markets").select("*").eq("resolved", 1)
-    if category:
-        q = q.eq("category", category)
-    rows = _not_null(_rows(q.order("end_date", desc=True).execute()), "resolution_value")
+    def _q() -> Any:
+        # Built fresh per page: `fetch_all` re-ranges, and a postgrest builder
+        # accumulates offset/limit params rather than replacing them.
+        b = conn.table("markets").select("*").eq("resolved", 1)
+        if category:
+            b = b.eq("category", category)
+        # nullsfirst=False: Mongo sorted missing values lowest, so nulls came
+        # LAST under DESC; Postgres defaults to NULLS FIRST and would float
+        # undated markets to the top.
+        return b.order("end_date", desc=True, nullsfirst=False)
+
+    rows = _not_null(fetch_all(_q), "resolution_value")
     # Limit is applied AFTER the null filter, matching the Mongo cursor order.
     if limit:
         rows = rows[:limit]
@@ -160,7 +262,10 @@ def list_resolved_markets(
 def list_open_markets(conn: Any, limit: int) -> list[dict[str, Any]]:
     res = (
         conn.table("markets").select("*").eq("resolved", 0)
-        .order("volume_24h", desc=True).limit(limit).execute()
+        # nullsfirst=False keeps volume-less markets at the BOTTOM (Mongo's
+        # ordering); Postgres' DESC default would put them first and let them
+        # eat the whole `limit`.
+        .order("volume_24h", desc=True, nullsfirst=False).limit(limit).execute()
     )
     return [_row(r) for r in _rows(res)]
 
@@ -171,7 +276,7 @@ def list_tradeable_markets(conn: Any, limit: int) -> list[dict[str, Any]]:
         .eq("resolved", 0)
         .gte("last_price_yes", 0.05)
         .lte("last_price_yes", 0.95)
-        .order("volume_24h", desc=True)
+        .order("volume_24h", desc=True, nullsfirst=False)
         .limit(limit)
         .execute()
     )
@@ -240,11 +345,13 @@ def latest_graph_decision_id(conn: Any, market_id: str) -> int | None:
 
 
 def latest_prior_p_yes(conn: Any, market_id: str) -> float | None:
-    res = (
-        conn.table("decisions").select("*")
-        .eq("market_id", market_id).order("id", desc=True).execute()
+    rows = _not_null(
+        fetch_all(
+            lambda: conn.table("decisions").select("*")
+            .eq("market_id", market_id).order("id", desc=True)
+        ),
+        "p_yes",
     )
-    rows = _not_null(_rows(res), "p_yes")
     return float(rows[0]["p_yes"]) if rows else None
 
 
@@ -385,17 +492,38 @@ def positions_with_market(
     `wallet` restricts to positions whose entry decision was anchored on-chain from
     that address (personal mode); omitted → the full shared agent record.
     """
-    q = conn.table("positions").select("*")
-    if wallet:
-        q = q.in_("entry_decision_id", decision_ids_for_wallet(conn, wallet))
-    rows = [_row(r) for r in _rows(q.order("id", desc=True).limit(limit).execute())]
+    if wallet is not None:
+        decision_ids = decision_ids_for_wallet(conn, wallet)
+        if not decision_ids:
+            # `.in_()` with an empty list renders as `in.()`, which PostgREST
+            # rejects with a 400. A wallet that has anchored nothing simply has
+            # no positions.
+            return []
+        rows = [
+            _row(r)
+            for r in sorted(
+                fetch_in_chunks(
+                    lambda: conn.table("positions").select("*"),
+                    "entry_decision_id",
+                    decision_ids,
+                ),
+                key=lambda r: r["id"],
+                reverse=True,
+            )[:limit]
+        ]
+    else:
+        rows = [
+            _row(r)
+            for r in _rows(
+                conn.table("positions").select("*")
+                .order("id", desc=True).limit(limit).execute()
+            )
+        ]
     ids = list({r["market_id"] for r in rows})
-    markets: dict[Any, dict[str, Any]] = {}
-    if ids:
-        markets = {
-            m["id"]: m
-            for m in _rows(conn.table("markets").select("*").in_("id", ids).execute())
-        }
+    markets: dict[Any, dict[str, Any]] = {
+        m["id"]: m
+        for m in fetch_in_chunks(lambda: conn.table("markets").select("*"), "id", ids)
+    }
     for r in rows:
         m = markets.get(r["market_id"])
         r["question"] = m["question"] if m else None
@@ -576,7 +704,7 @@ def upsert_metrics(conn: Any, m: dict[str, Any]) -> None:
 def _latest_metrics_rows(conn: Any) -> list[dict[str, Any]]:
     """Latest metrics row per category (max as_of), like the SQL correlated subquery."""
     by_cat: dict[str, dict[str, Any]] = {}
-    for r in _rows(conn.table("metrics").select("*").execute()):
+    for r in fetch_all(lambda: conn.table("metrics").select("*")):
         cat = r["category"]
         if cat not in by_cat or r["as_of"] > by_cat[cat]["as_of"]:
             by_cat[cat] = r
@@ -606,7 +734,7 @@ def in_blocklist(conn: Any, question: str) -> bool:
     q = question.lower()
     return any(
         r["pattern"].lower() in q
-        for r in _rows(conn.table("blocklist").select("*").execute())
+        for r in fetch_all(lambda: conn.table("blocklist").select("*"))
     )
 
 

@@ -130,8 +130,9 @@ class _Query:
         self._name = name
         self._spec = _SCHEMA[name]
         self._filters: list[_Filter] = []
-        self._order: tuple[str, bool] | None = None
+        self._order: tuple[str, bool, bool] | None = None
         self._limit: int | None = None
+        self._offset: int = 0
         self._single = False
         self._op: str | None = None
         self._payload: Any = None
@@ -163,12 +164,24 @@ class _Query:
         return self
 
     # ---- shaping ----
-    def order(self, col: str, *, desc: bool = False) -> _Query:
-        self._order = (col, desc)
+    def order(self, col: str, *, desc: bool = False, nullsfirst: bool | None = None) -> _Query:
+        # Postgres orders NULLS LAST under ASC and NULLS FIRST under DESC unless
+        # told otherwise; `nullsfirst` overrides that. Modelled here so the fake
+        # cannot hide an ordering regression the real database would show.
+        nulls_first = desc if nullsfirst is None else nullsfirst
+        self._order = (col, desc, nulls_first)
         return self
 
     def limit(self, n: int) -> _Query:
         self._limit = n
+        return self
+
+    def range(self, start: int, end: int) -> _Query:
+        """PostgREST `.range()`: inclusive offset window."""
+        if self._limit is not None:
+            raise PostgrestFakeError("fake postgrest: .limit() and .range() both set")
+        self._offset = start
+        self._limit = end - start + 1
         return self
 
     def single(self) -> _Query:
@@ -247,17 +260,27 @@ class _Query:
 
     def _shape(self, matched: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if self._order is not None:
-            col, desc = self._order
-            matched = sorted(matched, key=lambda r: (r.get(col) is None, r.get(col)), reverse=desc)
+            col, desc, nulls_first = self._order
+            non_null = [r for r in matched if r.get(col) is not None]
+            nulls = [r for r in matched if r.get(col) is None]
+            non_null.sort(key=lambda r: r[col], reverse=desc)
+            matched = nulls + non_null if nulls_first else non_null + nulls
+        if self._offset:
+            matched = matched[self._offset :]
         if self._limit is not None:
             matched = matched[: self._limit]
-        return matched
+        # PostgREST truncates every response at the project's `Max rows` setting
+        # and still answers 200 — the reason unbounded reads must be paged.
+        return matched[: self._store.max_rows]
 
 
 class FakePostgrest:
     """Fake Supabase client: `FakePostgrest().table("markets").select(...)...execute()`."""
 
-    def __init__(self) -> None:
+    def __init__(self, max_rows: int = 1000) -> None:
+        #: PostgREST's `Max rows` cap (Supabase default 1000). Every select is
+        #: silently truncated to it, with a 200 status.
+        self.max_rows = max_rows
         self._tables: dict[str, list[dict[str, Any]]] = {name: [] for name in _SCHEMA}
         self._next_id: dict[str, int] = {name: 1 for name in _SCHEMA}
 

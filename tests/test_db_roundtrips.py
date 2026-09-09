@@ -1,3 +1,5 @@
+import pytest
+
 from agent.store import db
 
 
@@ -169,3 +171,30 @@ def test_json_text_columns_round_trip_verbatim():
     assert row["response_json"] == json.dumps(response_json)
     # Key order survives: a jsonb column would have sorted these.
     assert row["response_json"].index('"z"') < row["response_json"].index('"a"')
+
+
+def test_init_db_fails_loudly_on_schema_drift(monkeypatch):
+    """`init_db` probes recent columns, so an out-of-date schema fails fast.
+
+    Without the probe, drift only surfaced later as a mid-cycle PostgREST error
+    on whichever write happened to touch the missing column.
+    """
+    from tests.fakes.postgrest import FakePostgrest, PostgrestFakeError
+
+    class DriftedStore(FakePostgrest):
+        def table(self, name):  # type: ignore[override]
+            q = super().table(name)
+            if name == "positions":
+                orig = q.select
+
+                def _select(*cols):
+                    if any("notional_in_original" in c for c in cols):
+                        raise PostgrestFakeError("column positions.notional_in_original does not exist")
+                    return orig(*cols)
+
+                q.select = _select  # type: ignore[method-assign]
+            return q
+
+    monkeypatch.setattr(db, "_client", DriftedStore())
+    with pytest.raises(RuntimeError, match="schema check failed on positions"):
+        db.init_db()

@@ -30,7 +30,10 @@ def _now() -> str:
 def replay_balance() -> float:
     """Authoritative balance: sum of every event amount."""
     with db.connect() as conn:
-        rows = db._rows(conn.table("treasury_events").select("amount").execute())
+        # Paged: PostgREST would silently truncate this at its max-rows cap and
+        # return 200, so past the cap the balance — and every `balance_after`
+        # computed from it — would be quietly wrong and then persisted.
+        rows = db.fetch_all(lambda: conn.table("treasury_events").select("amount"))
         return round(sum(float(e.get("amount") or 0.0) for e in rows), 6)
 
 
@@ -167,17 +170,25 @@ def drawdown() -> float:
 
 def events(limit: int = 100) -> list[dict[str, Any]]:
     with db.connect() as conn:
-        res = conn.table("treasury_events").select("*").order("id", desc=True).limit(limit).execute()
+        res = (
+            conn.table("treasury_events").select("*")
+            .order("id", desc=True).limit(limit).execute()
+        )
         return [db._row(e) for e in db._rows(res)]
 
 
 def deployed(leg: str | None = None) -> float:
     """Notional currently at risk in open positions, optionally for one leg."""
-    with db.connect() as conn:
+    def _q() -> Any:
         q = conn.table("positions").select("*").eq("status", "open").neq("venue", "simulated")
         if leg:
             q = q.eq("leg", leg)
-        rows = db._rows(q.execute())
+        return q
+
+    with db.connect() as conn:
+        # Paged: a truncated read here UNDERSTATES exposure, so the drawdown and
+        # concentration breakers would pass when they should trip.
+        rows = db.fetch_all(_q)
         return round(sum(float(p.get("notional_in") or 0.0) for p in rows), 6)
 
 

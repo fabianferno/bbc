@@ -416,8 +416,8 @@ alter table treasury          enable row level security;
 alter table treasury_events   enable row level security;
 alter table flywheel_events   enable row level security;
 
--- Anyone holding the publishable key, which ships in the browser bundle, can
--- read every table below (market data, the agent's trading ledger, its
+-- Anyone holding the publishable key can read every table below (market
+-- data, the agent's trading ledger, its
 -- reasoning traces, and on-chain anchor records). This matches what the
 -- existing web app already surfaces through the API, so it is not a new
 -- exposure, but it is broader than "read your own rows" — there is no
@@ -440,16 +440,24 @@ create policy "public read treasury"         on treasury          for select usi
 create policy "public read treasury_events"  on treasury_events   for select using (true);
 create policy "public read flywheel_events"  on flywheel_events   for select using (true);
 
--- Anyone holding the publishable key, which ships in the browser bundle, can
--- insert, update, or delete rows in EVERY table below — including the
+-- Anyone holding the publishable key can insert, update, or delete rows in
+-- EVERY table below — including the
 -- trading ledger (positions, orders, treasury_events, flywheel_events) and
 -- the reasoning-trace tables that are anchored on Solana. This is what makes
 -- the agent (running with only a publishable key, per the operator's
 -- decision) able to write at all; it also means the tamper-evidence claim in
 -- submission.md holds only up to "nobody else used the same public key to
 -- write a row first" — anyone else who obtains the publishable key can write
--- indistinguishable rows. Switch to the hardened set below once a service
--- role key exists.
+-- indistinguishable rows.
+--
+-- Scope of that exposure, stated accurately: the publishable key is used
+-- SERVER-SIDE ONLY. Nothing under `web/src` references Supabase — the browser
+-- talks to the agent's own API, never to PostgREST — so the key does not ship
+-- in any browser bundle and is not public in practice. The tamper-evidence
+-- claim therefore holds exactly as long as the publishable key stays secret
+-- (it is a deployment secret, not a published one). Switch to the hardened set
+-- below once a service role key exists, so the claim no longer depends on
+-- keeping a key that Supabase considers publishable out of sight.
 create policy "public write markets"           on markets           for all using (true) with check (true);
 create policy "public write decisions"         on decisions         for all using (true) with check (true);
 create policy "public write positions"         on positions         for all using (true) with check (true);
@@ -473,9 +481,9 @@ create policy "public write flywheel_events"   on flywheel_events   for all usin
 -- SUPABASE_SERVICE_ROLE_KEY is configured: the agent's server-side client
 -- will then use the service role, which bypasses RLS entirely and needs no
 -- policies of its own. What remains below is the PUBLIC surface: the
--- publishable key (browser bundle) keeps read access for the web app, and
--- loses all write access, closing the anonymous-write exposure documented
--- above.
+-- publishable key keeps read access (for any future direct-from-browser or
+-- third-party reader) and loses all write access, closing the
+-- publishable-key-write exposure documented above.
 --
 -- drop policy if exists "public write markets"           on markets;
 -- drop policy if exists "public write decisions"         on decisions;
@@ -495,6 +503,7 @@ create policy "public write flywheel_events"   on flywheel_events   for all usin
 -- drop policy if exists "public write treasury_events"   on treasury_events;
 -- drop policy if exists "public write flywheel_events"   on flywheel_events;
 --
--- The "public read ..." policies above can stay as-is: the web app still
--- reads through the publishable key. Drop them too if reads should also
--- move behind the service role (e.g. via a server-only API route).
+-- The "public read ..." policies above can stay as-is; they cost nothing
+-- today, since the web app reads through the agent's API rather than through
+-- PostgREST. Drop them too if reads should be reachable only via the service
+-- role.

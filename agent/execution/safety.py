@@ -121,15 +121,19 @@ def _open_exposure_by_category() -> tuple[dict[str, float], float]:
     by_cat: dict[str, float] = {}
     total = 0.0
     with db.connect() as conn:
-        open_rows = db._rows(
-            conn.table("positions").select("*")
-            .eq("status", "open").neq("venue", "simulated").execute()
+        # Paged + chunked: truncation here understates exposure, which would
+        # let the concentration breaker pass when it should trip.
+        open_rows = db.fetch_all(
+            lambda: conn.table("positions").select("*")
+            .eq("status", "open").neq("venue", "simulated")
         )
         ids = list({r["market_id"] for r in open_rows})
-        markets = (
-            {m["id"]: m for m in db._rows(conn.table("markets").select("*").in_("id", ids).execute())}
-            if ids else {}
-        )
+        markets = {
+            m["id"]: m
+            for m in db.fetch_in_chunks(
+                lambda: conn.table("markets").select("*"), "id", ids
+            )
+        }
     for r in open_rows:
         cat = ((markets.get(r["market_id"]) or {}).get("category") or "uncategorised").lower()
         amt = float(r.get("notional_in") or 0.0)

@@ -198,3 +198,37 @@ def test_flywheel_endpoint_keeps_the_scalar_count_and_the_log_separate():
     assert isinstance(body["event_count"], int)
     assert isinstance(body["events"], list)
     assert body["event_count"] == len(body["events"])
+
+
+def test_anchor_record_rejects_unknown_foreign_keys():
+    """`decision_id`/`market_id` are FK-constrained in Postgres.
+
+    A stale id was silently accepted under Mongo; unvalidated it would now raise a
+    foreign-key violation and surface to the caller as a 500.
+    """
+    body = {
+        "kind": "anchor",
+        "tx_hash": "5" * 64,
+        "decision_id": 999999,
+    }
+    assert client.post("/api/anchors/record", json=body).status_code == 422
+
+    body = {"kind": "anchor", "tx_hash": "5" * 64, "market_id": "manifold:nope"}
+    assert client.post("/api/anchors/record", json=body).status_code == 422
+
+
+def test_anchor_record_accepts_a_live_decision_id():
+    with db.connect() as conn:
+        market_id = db.upsert_market(
+            conn, {"venue": "manifold", "external_id": "anchor-ok", "question": "q"}
+        )
+        did = db.record_decision(conn, {
+            "market_id": market_id, "kind": "entry", "as_of": "2026-01-01T00:00:00+00:00",
+            "prompt": "p", "model_id": "m", "response_raw": "{}",
+        })
+    resp = client.post("/api/anchors/record", json={
+        "kind": "anchor", "tx_hash": "6" * 64,
+        "decision_id": did, "market_id": market_id,
+    })
+    assert resp.status_code == 200
+    assert resp.json()["tx_hash"] == "6" * 64
