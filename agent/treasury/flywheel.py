@@ -60,7 +60,11 @@ def on_settlement(position_id: int, realized_pnl: float) -> dict[str, Any] | Non
     if realized_pnl <= 0:
         return None
     with db.connect() as conn:
-        if conn["flywheel_events"].find_one({"position_id": position_id}):
+        existing = db._first(
+            conn.table("flywheel_events").select("id")
+            .eq("position_id", position_id).limit(1).execute()
+        )
+        if existing:
             return None
 
     price, source = ansem_price_usd()
@@ -80,8 +84,9 @@ def on_settlement(position_id: int, realized_pnl: float) -> dict[str, Any] | Non
         "created_at": datetime.now(UTC).isoformat(timespec="seconds"),
     }
     with db.connect() as conn:
-        eid = db.next_id(conn, "flywheel_events")
-        conn["flywheel_events"].insert_one({"_id": eid, **event})
+        row = db._first(conn.table("flywheel_events").insert(dict(event)).execute())
+        assert row is not None  # an insert always returns its representation
+        eid = int(row["id"])
     # Debit the money that LEAVES the book: the $ANSEM buy plus the reserve. The
     # 50% treasury share is NOT credited here — `db.close_position` already credited
     # the full proceeds via the `settlement` event, so crediting it again would
@@ -96,8 +101,8 @@ def on_settlement(position_id: int, realized_pnl: float) -> dict[str, Any] | Non
 
 def events(limit: int = 50) -> list[dict[str, Any]]:
     with db.connect() as conn:
-        cur = conn["flywheel_events"].find().sort("_id", -1).limit(limit)
-        return [db._row(e) for e in cur]
+        res = conn.table("flywheel_events").select("*").order("id", desc=True).limit(limit).execute()
+        return [db._row(e) for e in db._rows(res)]
 
 
 def totals() -> dict[str, Any]:
@@ -105,7 +110,7 @@ def totals() -> dict[str, Any]:
     treasury_usd = ansem_usd = ansem_qty = reserve_usd = profit = 0.0
     n = 0
     with db.connect() as conn:
-        for e in conn["flywheel_events"].find():
+        for e in db._rows(conn.table("flywheel_events").select("*").execute()):
             n += 1
             profit += float(e.get("realized_pnl") or 0.0)
             treasury_usd += float(e.get("treasury_share") or 0.0)

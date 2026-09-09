@@ -116,3 +116,56 @@ def test_graph_roundtrip():
     assert g["stats"] == {"node_count": 1}
     assert g["nodes"][0]["label"] == "N1"
     assert g["edges"][0]["type"] == "REL"
+
+
+def test_trace_blob_canonical_json_round_trips_byte_identically():
+    """The stored canonical JSON is the exact string that was hashed and anchored
+    on-chain. Any normalisation — key reordering, whitespace collapse, a jsonb
+    round-trip — breaks `/verify/<id>` for every trace already on Solana, so the
+    byte-for-byte identity is asserted here rather than assumed."""
+    import hashlib
+
+    # Deliberately non-canonical spacing, non-sorted keys, unicode and escapes:
+    # anything that re-serialises this string will change it.
+    canonical = '{"z":1,  "a":[1,2,3],"s":"caf\\u00e9 \\"quoted\\"","n":null,"f":1.50}'
+    digest = hashlib.sha256(canonical.encode()).hexdigest()
+
+    with db.connect() as conn:
+        mid = db.upsert_market(conn, {"venue": "t", "external_id": "tb", "question": "Q"})
+        did = db.record_decision(conn, {
+            "market_id": mid, "kind": "entry", "as_of": "x", "prompt": "p",
+            "model_id": "x", "response_raw": "{}",
+        })
+        db.save_trace_blob(
+            conn, decision_id=did, market_id=mid, trace_hash=digest,
+            canonical_json=canonical,
+        )
+        blob = db.get_trace_blob(conn, did)
+
+    assert blob is not None
+    assert blob["canonical_json"] == canonical
+    assert hashlib.sha256(blob["canonical_json"].encode()).hexdigest() == digest
+    assert blob["decision_id"] == did
+
+
+def test_json_text_columns_round_trip_verbatim():
+    """`decisions.search_used` / `response_json` and `graph_runs.*_json` are `text`
+    columns holding whatever `json.dumps` produced. Confirm the stored string is
+    returned unchanged, key order included."""
+    import json
+
+    search_used = [{"url": "https://e.example", "title": "z", "published": "2026-01-01"}]
+    response_json = {"z": 1, "a": 2, "nested": {"b": [1, 2]}}
+    with db.connect() as conn:
+        mid = db.upsert_market(conn, {"venue": "t", "external_id": "jt", "question": "Q"})
+        did = db.record_decision(conn, {
+            "market_id": mid, "kind": "entry", "as_of": "x", "prompt": "p",
+            "model_id": "x", "response_raw": "{}",
+            "search_used": search_used, "response_json": response_json,
+        })
+        row = db.get_decision(conn, did)
+    assert row is not None
+    assert row["search_used"] == json.dumps(search_used)
+    assert row["response_json"] == json.dumps(response_json)
+    # Key order survives: a jsonb column would have sorted these.
+    assert row["response_json"].index('"z"') < row["response_json"].index('"a"')

@@ -1,6 +1,6 @@
 """Unit tests for tests/fakes/postgrest.py — the in-memory PostgREST fake.
 
-Not part of the DAO test suite (the DAO still uses pymongo in this task); these
+Not part of the DAO test suite; these
 tests exercise the fake in isolation so its behaviour is trustworthy before
 tasks 4-6 build the real DAO rewrite on top of it.
 """

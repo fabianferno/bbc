@@ -60,11 +60,9 @@ def test_terminal_close_after_partials_fires_flywheel_once_with_true_total_pnl()
 
     ledger.seed_if_empty()
     with db.connect() as conn:
-        pid = db.next_id(conn, "positions")
-        conn["positions"].insert_one(
+        inserted = db._first(conn.table("positions").insert(
             {
-                "_id": pid,
-                "market_id": 1,
+                "market_id": "manifold:fw1",
                 "venue": "manifold",
                 "leg": "slow",
                 "shares": 100.0,
@@ -77,7 +75,9 @@ def test_terminal_close_after_partials_fires_flywheel_once_with_true_total_pnl()
                 "entry_price": 0.5,
                 "opened_at": "2026-01-01T00:00:00Z",
             }
-        )
+        ).execute())
+        assert inserted is not None
+        pid = int(inserted["id"])
 
         db.close_position(
             conn,
@@ -102,7 +102,9 @@ def test_terminal_close_after_partials_fires_flywheel_once_with_true_total_pnl()
             shares_closed=50.0,
         )
 
-        pos = db._row(conn["positions"].find_one({"_id": pid}))
+        pos = db._row(
+            db._first(conn.table("positions").select("*").eq("id", pid).limit(1).execute())
+        )
         assert pos["status"] == "closed"
         true_total_pnl = pos["pnl"]
 

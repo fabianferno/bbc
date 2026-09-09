@@ -81,7 +81,7 @@ def test_leg_is_persisted_and_defaults_to_slow():
             "market_id": "manifold:m2", "venue": "manifold", "side": "NO",
             "shares": 1.0, "entry_price": 0.5, "notional_in": 1.0,
         })
-        pos = conn["positions"].find_one({"_id": pid})
+        pos = db._first(conn.table("positions").select("*").eq("id", pid).limit(1).execute())
     assert pos["leg"] == "slow"
 
 
@@ -98,7 +98,7 @@ def test_partial_close_leaves_position_open_and_credits_partial_proceeds():
             exit_decision_id=None, venue_exit_order=None, p_yes_at_exit=0.7,
             shares_closed=4.0,
         )
-        pos = conn["positions"].find_one({"_id": pid})
+        pos = db._first(conn.table("positions").select("*").eq("id", pid).limit(1).execute())
     assert pos["status"] == "open"
     assert pos["shares"] == 6.0
     assert pos["notional_in"] == 300.0
@@ -124,7 +124,7 @@ def test_two_partial_closes_match_single_full_close_balance():
             shares_closed=6.0,
         )
         partial_delta = ledger.balance() - bal_before_a
-        pos_a = conn["positions"].find_one({"_id": pid_a})
+        pos_a = db._first(conn.table("positions").select("*").eq("id", pid_a).limit(1).execute())
 
     bal_before_b = ledger.balance()
     with db.connect() as conn:
@@ -153,7 +153,7 @@ def test_full_close_still_marks_closed_and_sets_closed_at():
             conn, pid, exit_price=0.7, notional_out=700.0,
             exit_decision_id=None, venue_exit_order=None, p_yes_at_exit=0.7,
         )
-        pos = conn["positions"].find_one({"_id": pid})
+        pos = db._first(conn.table("positions").select("*").eq("id", pid).limit(1).execute())
     assert pos["status"] == "closed"
     assert pos["closed_at"] is not None
     assert pos["pnl"] == 200.0
@@ -176,7 +176,7 @@ def test_final_slice_of_multi_partial_close_reports_true_total_pnl():
             exit_decision_id=None, venue_exit_order=None, p_yes_at_exit=0.7,
             shares_closed=6.0,
         )
-        pos_a = conn["positions"].find_one({"_id": pid_a})
+        pos_a = db._first(conn.table("positions").select("*").eq("id", pid_a).limit(1).execute())
 
     with db.connect() as conn:
         pid_b = db.open_position(conn, {
@@ -187,7 +187,7 @@ def test_final_slice_of_multi_partial_close_reports_true_total_pnl():
             conn, pid_b, exit_price=0.7, notional_out=700.0,
             exit_decision_id=None, venue_exit_order=None, p_yes_at_exit=0.7,
         )
-        pos_b = conn["positions"].find_one({"_id": pid_b})
+        pos_b = db._first(conn.table("positions").select("*").eq("id", pid_b).limit(1).execute())
 
     assert pos_a["pnl"] == pos_b["pnl"] == 200.0
     assert pos_a["notional_out"] == pos_b["notional_out"] == 700.0

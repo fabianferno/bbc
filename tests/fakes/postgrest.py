@@ -6,7 +6,7 @@ Modeled on `supabase-py`'s sync client: `client.table(name).select(...)...execut
 returns an object exposing `.data` (a list of dicts, or a single dict for `.single()`).
 
 Implements exactly the operations the Mongo -> Postgres DAO rewrite (task 3 brief,
-Step 1) will need, enumerated by reading every pymongo call in `agent/store/db.py`:
+Step 1) needs, enumerated by reading every call site in `agent/store/db.py`:
 
     Table                Ops
     -----                ---

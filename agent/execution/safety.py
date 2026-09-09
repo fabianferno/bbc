@@ -121,9 +121,15 @@ def _open_exposure_by_category() -> tuple[dict[str, float], float]:
     by_cat: dict[str, float] = {}
     total = 0.0
     with db.connect() as conn:
-        open_rows = list(conn["positions"].find({"status": "open", "venue": {"$ne": "simulated"}}))
+        open_rows = db._rows(
+            conn.table("positions").select("*")
+            .eq("status", "open").neq("venue", "simulated").execute()
+        )
         ids = list({r["market_id"] for r in open_rows})
-        markets = {m["_id"]: m for m in conn["markets"].find({"_id": {"$in": ids}})}
+        markets = (
+            {m["id"]: m for m in db._rows(conn.table("markets").select("*").in_("id", ids).execute())}
+            if ids else {}
+        )
     for r in open_rows:
         cat = ((markets.get(r["market_id"]) or {}).get("category") or "uncategorised").lower()
         amt = float(r.get("notional_in") or 0.0)

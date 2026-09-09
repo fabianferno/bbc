@@ -30,12 +30,15 @@ def _now() -> str:
 def replay_balance() -> float:
     """Authoritative balance: sum of every event amount."""
     with db.connect() as conn:
-        return round(sum(float(e.get("amount") or 0.0) for e in conn["treasury_events"].find()), 6)
+        rows = db._rows(conn.table("treasury_events").select("amount").execute())
+        return round(sum(float(e.get("amount") or 0.0) for e in rows), 6)
 
 
 def _doc() -> dict[str, Any] | None:
     with db.connect() as conn:
-        return conn["treasury"].find_one({"_id": TREASURY_DOC_ID})
+        return db._first(
+            conn.table("treasury").select("*").eq("id", TREASURY_DOC_ID).limit(1).execute()
+        )
 
 
 def seed_if_empty() -> None:
@@ -44,16 +47,16 @@ def seed_if_empty() -> None:
         return
     amount = float(settings.agent_treasury_seed)
     with db.connect() as conn:
-        conn["treasury"].insert_one(
+        conn.table("treasury").insert(
             {
-                "_id": TREASURY_DOC_ID,
+                "id": TREASURY_DOC_ID,
                 "currency": CURRENCY,
                 "seed": amount,
                 "balance": 0.0,
                 "high_water_mark": 0.0,
                 "updated_at": _now(),
             }
-        )
+        ).execute()
     record("seed", amount)
 
 
@@ -65,13 +68,14 @@ def refresh_high_water_mark() -> float:
     """
     eq = equity()
     with db.connect() as conn:
-        doc = conn["treasury"].find_one({"_id": TREASURY_DOC_ID}) or {}
+        doc = db._first(
+            conn.table("treasury").select("*").eq("id", TREASURY_DOC_ID).limit(1).execute()
+        ) or {}
         hwm = max(float(doc.get("high_water_mark") or 0.0), eq)
-        conn["treasury"].update_one(
-            {"_id": TREASURY_DOC_ID},
-            {"$set": {"high_water_mark": hwm, "updated_at": _now()}},
-            upsert=True,
-        )
+        conn.table("treasury").upsert(
+            {"id": TREASURY_DOC_ID, "high_water_mark": hwm, "updated_at": _now()},
+            on_conflict="id",
+        ).execute()
     return hwm
 
 
@@ -96,11 +100,9 @@ def record(
     if kind not in KINDS:
         raise ValueError(f"unknown treasury event kind: {kind}")
     with db.connect() as conn:
-        eid = db.next_id(conn, "treasury_events")
         new_balance = round(replay_balance() + float(amount), 6)
-        conn["treasury_events"].insert_one(
+        conn.table("treasury_events").insert(
             {
-                "_id": eid,
                 "kind": kind,
                 "amount": float(amount),
                 "balance_after": new_balance,
@@ -109,23 +111,29 @@ def record(
                 "mode": settings.agent_mode,
                 "created_at": _now(),
             }
-        )
+        ).execute()
         # HWM tracks EQUITY (cash + notional deployed in open positions), not cash.
         # Every event that moves equity is written through `record()`, and each one is
         # appended AFTER the position row it refers to has been inserted/updated — so
         # `deployed()` here already reflects the position change this event settles.
         # An "entry" therefore leaves equity flat (cash down, deployed up) instead of
         # looking like a loss.
-        doc = conn["treasury"].find_one({"_id": TREASURY_DOC_ID}) or {}
+        doc = db._first(
+            conn.table("treasury").select("*").eq("id", TREASURY_DOC_ID).limit(1).execute()
+        ) or {}
         stored_hwm = float(doc.get("high_water_mark") or 0.0)
         hwm = (
             max(stored_hwm, round(new_balance + deployed(), 6)) if refresh_hwm else stored_hwm
         )
-        conn["treasury"].update_one(
-            {"_id": TREASURY_DOC_ID},
-            {"$set": {"balance": new_balance, "high_water_mark": hwm, "updated_at": _now()}},
-            upsert=True,
-        )
+        conn.table("treasury").upsert(
+            {
+                "id": TREASURY_DOC_ID,
+                "balance": new_balance,
+                "high_water_mark": hwm,
+                "updated_at": _now(),
+            },
+            on_conflict="id",
+        ).execute()
     return new_balance
 
 
@@ -159,17 +167,18 @@ def drawdown() -> float:
 
 def events(limit: int = 100) -> list[dict[str, Any]]:
     with db.connect() as conn:
-        cur = conn["treasury_events"].find().sort("_id", -1).limit(limit)
-        return [db._row(e) for e in cur]
+        res = conn.table("treasury_events").select("*").order("id", desc=True).limit(limit).execute()
+        return [db._row(e) for e in db._rows(res)]
 
 
 def deployed(leg: str | None = None) -> float:
     """Notional currently at risk in open positions, optionally for one leg."""
     with db.connect() as conn:
-        q: dict[str, Any] = {"status": "open", "venue": {"$ne": "simulated"}}
+        q = conn.table("positions").select("*").eq("status", "open").neq("venue", "simulated")
         if leg:
-            q["leg"] = leg
-        return round(sum(float(p.get("notional_in") or 0.0) for p in conn["positions"].find(q)), 6)
+            q = q.eq("leg", leg)
+        rows = db._rows(q.execute())
+        return round(sum(float(p.get("notional_in") or 0.0) for p in rows), 6)
 
 
 def snapshot() -> dict[str, Any]:

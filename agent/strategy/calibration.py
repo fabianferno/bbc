@@ -15,6 +15,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Any
 
 from agent.logging import get_logger
 from agent.store import db
@@ -81,8 +82,23 @@ def recompute(*, persist: bool = True) -> dict[str, CategoryMetrics]:
         # Score every entry decision against the eventual market resolution.
         per_cat: dict[str, list[tuple[float, float]]] = {}
         all_preds: list[tuple[float, float]] = []
-        for d in conn["decisions"].find({"kind": "entry", "p_yes": {"$ne": None}}):
-            m = conn["markets"].find_one({"_id": d["market_id"]})
+        entry_decisions = db._not_null(
+            db._rows(conn.table("decisions").select("*").eq("kind", "entry").execute()), "p_yes"
+        )
+        closed_positions = db._rows(
+            conn.table("positions").select("*").eq("status", "closed").execute()
+        )
+        # One batched market read instead of a per-row lookup.
+        market_ids = list(
+            {d["market_id"] for d in entry_decisions} | {p["market_id"] for p in closed_positions}
+        )
+        markets: dict[Any, dict[str, Any]] = (
+            {m["id"]: m for m in db._rows(conn.table("markets").select("*").in_("id", market_ids).execute())}
+            if market_ids else {}
+        )
+
+        for d in entry_decisions:
+            m = markets.get(d["market_id"])
             if not m or m.get("resolved") != 1 or m.get("resolution_value") is None:
                 continue
             cat = (m.get("category") or "uncategorised").lower()
@@ -91,8 +107,8 @@ def recompute(*, persist: bool = True) -> dict[str, CategoryMetrics]:
             all_preds.append(pair)
 
         pnl_by_cat: dict[str, tuple[float, float]] = {}
-        for p in conn["positions"].find({"status": "closed"}):
-            m = conn["markets"].find_one({"_id": p["market_id"]})
+        for p in closed_positions:
+            m = markets.get(p["market_id"])
             cat = ((m.get("category") if m else None) or "uncategorised").lower()
             cur_pnl, cur_not = pnl_by_cat.get(cat, (0.0, 0.0))
             pnl_by_cat[cat] = (

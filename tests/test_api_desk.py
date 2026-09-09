@@ -27,16 +27,18 @@ def test_treasury_endpoint_does_not_trip_the_drawdown_kill_switch():
     """
     ledger.seed_if_empty()
     with db.connect() as conn:
-        conn["breaker_state"].delete_many({})
-        conn["treasury"].update_one(
-            {"_id": ledger.TREASURY_DOC_ID},
-            {"$set": {"balance": 100.0, "high_water_mark": 100.0}},
-            upsert=True,
-        )
-        conn["treasury"].update_one(
-            {"_id": ledger.TREASURY_DOC_ID},
-            {"$set": {"balance": 50.0}},
-        )
+        db.clear_breakers(conn)
+        conn.table("treasury").upsert(
+            {
+                "id": ledger.TREASURY_DOC_ID,
+                "balance": 100.0,
+                "high_water_mark": 100.0,
+            },
+            on_conflict="id",
+        ).execute()
+        conn.table("treasury").update({"balance": 50.0}).eq(
+            "id", ledger.TREASURY_DOC_ID
+        ).execute()
     assert ledger.drawdown() >= 0.20
 
     client.get("/api/treasury")
