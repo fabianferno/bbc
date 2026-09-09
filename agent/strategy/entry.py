@@ -20,6 +20,7 @@ from agent.logging import get_logger
 from agent.reasoning import claude_client, prompts, search
 from agent.store import db as _db
 from agent.strategy import calibration, filters, sizing
+from agent.treasury import legs
 
 log = get_logger(__name__)
 
@@ -37,6 +38,8 @@ class EntryPlan:
     p_yes: float | None = None
     confidence: float | None = None
     edge: float | None = None
+    leg: str | None = None
+    intended_hold_hours: float | None = None
     rationale: str | None = None
     model_id: str | None = None
     decision_id: int | None = None
@@ -236,9 +239,11 @@ def plan_entry(
     # 5. sizing
     cat = (market.get("category") or "uncategorised").lower()
     mul = calibration.multiplier_for(cat)
+    leg = legs.classify(entry_parsed["intended_hold_hours"])
     sd = sizing.size_position(
         p_agent=entry_parsed["p_yes"],
         p_market=market_price,
+        leg=leg,
         calibration_mul=mul,
     )
     if sd.usd <= 0:
@@ -274,6 +279,8 @@ def plan_entry(
         p_yes=entry_parsed["p_yes"],
         confidence=entry_parsed["confidence"],
         edge=entry_parsed["edge_vs_market"],
+        leg=leg,
+        intended_hold_hours=entry_parsed["intended_hold_hours"],
         rationale=entry_parsed["rationale"],
         model_id=entry_resp.model_id,
         decision_id=entry_id,

@@ -130,6 +130,10 @@ Tasks:
    negative if you'd take NO).
 5. Recommend one of: 'enter_yes', 'enter_no', 'skip'.
    - Recommend a side only if |edge| >= 0.05 AND your confidence >= 0.5.
+6. State how long you intend to HOLD this position before closing it, in hours.
+   This is your trading intent, not the market's resolution date — you may close
+   early on price movement. Positions intended to close within 48 hours are the
+   fast leg of the barbell; longer holds are the slow, high-conviction leg.
 
 Respond in this exact JSON shape:
 {{
@@ -138,6 +142,7 @@ Respond in this exact JSON shape:
   "rationale": "<3-6 sentences>",
   "key_signals": ["<short bullet>", ...],
   "edge_vs_market": <float>,
+  "intended_hold_hours": <float, hours you intend to hold before closing>,
   "recommended_action": "enter_yes" | "enter_no" | "skip"
 }}"""
 
@@ -217,12 +222,20 @@ def validate_entry(parsed: Any) -> dict[str, Any] | None:
         return None
     if not (0.0 <= p_yes <= 1.0) or not (0.0 <= conf <= 1.0):
         return None
+    raw_hold = parsed.get("intended_hold_hours")
+    try:
+        hold = float(raw_hold) if raw_hold is not None else None
+    except (TypeError, ValueError):
+        hold = None
+    if hold is not None and hold <= 0:
+        hold = None
     return {
         "p_yes": p_yes,
         "confidence": conf,
         "rationale": str(parsed.get("rationale", ""))[:3000],
         "key_signals": [str(s)[:300] for s in parsed.get("key_signals", [])][:10],
         "edge_vs_market": edge,
+        "intended_hold_hours": hold,
         "recommended_action": action,
     }
 
