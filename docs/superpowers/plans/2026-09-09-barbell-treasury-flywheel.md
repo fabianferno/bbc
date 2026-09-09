@@ -765,10 +765,20 @@ def test_category_concentration_cap(monkeypatch):
     ledger.seed_if_empty()
     monkeypatch.setattr(
         safety, "_open_exposure_by_category",
-        lambda: ({"politics": 900.0, "world": 100.0}, 1000.0),
+        lambda: ({"politics": 2400.0, "world": 100.0}, 2500.0),
     )
-    # politics would become 1000/1100 = 91% of exposure, over the 40% cap
-    assert safety.entry_allowed(usd_size=100.0, leg="slow", category="politics").tripped
+    # politics would be 2600 of a 2700 book, far over the 40% cap
+    assert safety.entry_allowed(usd_size=200.0, leg="slow", category="politics").tripped
+
+
+def test_concentration_cap_does_not_block_an_empty_book():
+    """The first position is always 100% of open exposure; the cap must not trip on it.
+
+    Concentration is measured against the TARGET deployed book, not the current
+    one, so an early position is judged against the book it is being built into.
+    """
+    ledger.seed_if_empty()
+    assert not safety.entry_allowed(usd_size=400.0, leg="fast", category="politics").tripped
 
 
 def test_no_leverage_size_never_exceeds_sleeve_headroom():
@@ -910,11 +920,16 @@ def entry_allowed(*, usd_size: float, leg: str, category: str) -> BreakerCheck:
 
     by_cat, total = _open_exposure_by_category()
     cat = (category or "uncategorised").lower()
-    new_total = total + usd_size
-    if new_total > 0 and (by_cat.get(cat, 0.0) + usd_size) / new_total > CATEGORY_CONCENTRATION_CAP:
+    # Measure concentration against the TARGET deployed book, not merely the current
+    # one. A single position is always 100% of a one-position book, so a raw ratio
+    # would reject every opening trade. The denominator is therefore the larger of
+    # the book after this entry and the fast-leg deployment target, which lets the
+    # book be built up and starts biting once real exposure exists.
+    denominator = max(total + usd_size, treasury * FAST_LEG_DEPLOYMENT_CAP)
+    if denominator > 0 and (by_cat.get(cat, 0.0) + usd_size) / denominator > CATEGORY_CONCENTRATION_CAP:
         return BreakerCheck(
             "entry.category_concentration", True,
-            f"category={cat} > {CATEGORY_CONCENTRATION_CAP:.0%} of open exposure",
+            f"category={cat} > {CATEGORY_CONCENTRATION_CAP:.0%} of the target book",
         )
 
     return BreakerCheck("entry_allowed", False)
