@@ -133,3 +133,66 @@ def test_settled_positions_reports_fast_and_slow_legs_separately():
     assert perf["fast"]["win_rate"] != perf["slow"]["win_rate"]
     assert perf["fast"]["wins"] >= 1
     assert perf["slow"]["wins"] == 0 or perf["slow"]["win_rate"] is not None
+
+
+def test_settled_excludes_backtest_positions_on_real_markets():
+    """A backtest position (venue="simulated") on a REAL manifold market must not
+    be published as a settled paper trade.
+
+    `positions_with_market` overwrites `venue` with the MARKET's venue, so the
+    endpoint has to filter on the position's own `position_venue`.
+    """
+    with db.connect() as conn:
+        mid = db.upsert_market(
+            conn,
+            {"venue": "manifold", "external_id": "bt-1", "question": "Backtested?"},
+        )
+        sim_id = db.open_position(
+            conn,
+            {
+                "market_id": mid, "venue": "simulated", "leg": legs.FAST, "side": "yes",
+                "shares": 10.0, "entry_price": 0.5, "notional_in": 10.0,
+            },
+        )
+        db.close_position(
+            conn, sim_id, exit_price=1.0, notional_out=99.0,
+            exit_decision_id=None, venue_exit_order=None, p_yes_at_exit=1.0,
+        )
+
+    body = client.get("/api/positions/settled").json()
+    assert all(p["id"] != sim_id for p in body["positions"])
+    perf = body["leg_performance"]
+    assert perf["fast"]["settled"] == 0
+    assert perf["fast"]["realized_pnl_notional"] == 0.0
+
+
+def test_settled_ignores_unknown_leg_labels():
+    """A legacy/unknown `leg` value must not 500 the endpoint or blend into a leg."""
+    with db.connect() as conn:
+        mid = db.upsert_market(
+            conn, {"venue": "manifold", "external_id": "leg-x", "question": "Odd leg?"},
+        )
+        pid = db.open_position(
+            conn,
+            {
+                "market_id": mid, "venue": "manifold", "leg": "medium", "side": "yes",
+                "shares": 10.0, "entry_price": 0.5, "notional_in": 10.0,
+            },
+        )
+        db.close_position(
+            conn, pid, exit_price=1.0, notional_out=15.0,
+            exit_decision_id=None, venue_exit_order=None, p_yes_at_exit=1.0,
+        )
+
+    resp = client.get("/api/positions/settled")
+    assert resp.status_code == 200
+    perf = resp.json()["leg_performance"]
+    assert perf["fast"]["settled"] == 0
+    assert perf["slow"]["settled"] == 0
+
+
+def test_flywheel_endpoint_keeps_the_scalar_count_and_the_log_separate():
+    body = client.get("/api/flywheel").json()
+    assert isinstance(body["event_count"], int)
+    assert isinstance(body["events"], list)
+    assert body["event_count"] == len(body["events"])

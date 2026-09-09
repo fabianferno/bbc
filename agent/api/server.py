@@ -10,6 +10,8 @@ from __future__ import annotations
 import asyncio
 import json
 import threading
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
@@ -28,7 +30,18 @@ from agent.treasury import flywheel, ledger, legs
 
 log = get_logger(__name__)
 
-app = FastAPI(title="BBC API", version="0.1.0")
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    """Idempotent treasury self-seed so a pre-treasury DB never serves a 0.00 book."""
+    try:
+        ledger.seed_if_empty()
+    except Exception as e:  # noqa: BLE001 — never block API startup on the ledger
+        log.warning("api.treasury_seed_failed", error=str(e))
+    yield
+
+
+app = FastAPI(title="BBC API", version="0.1.0", lifespan=_lifespan)
 
 # Public read-mostly API consumed by a static frontend (no cookies) → allow any origin.
 # This lets the deployed Vercel app (and judges) reach the agent over SSE + REST.
@@ -351,6 +364,7 @@ def treasury() -> dict[str, Any]:
 
 @app.get("/api/flywheel")
 def flywheel_state() -> dict[str, Any]:
+    # `totals()` exposes the scalar count as `event_count`; `events` is the log itself.
     return {**flywheel.totals(), "events": flywheel.events(limit=50)}
 
 
@@ -359,15 +373,23 @@ def settled_positions(limit: int = 100) -> dict[str, Any]:
     with db.connect() as conn:
         rows = [
             r for r in db.positions_with_market(conn, limit=limit)
-            if r.get("status") == "closed" and r.get("venue") != "simulated"
+            # Filter on the POSITION's own venue: `venue` on the joined row is the
+            # market's venue, so a backtest position on a real manifold market would
+            # otherwise be published as a settled paper trade.
+            if r.get("status") == "closed" and r.get("position_venue") != "simulated"
         ]
     wins = {"fast": 0, "slow": 0}
     counts = {"fast": 0, "slow": 0}
     pnl = {"fast": 0.0, "slow": 0.0}
     for r in rows:
         leg = r.get("leg") or "slow"
+        if leg not in counts:  # unknown/legacy leg label: never blend it into a real leg
+            continue
         counts[leg] += 1
         pnl[leg] += float(r.get("pnl") or 0.0)
+        # Break-even (pnl == 0) settlements count in `settled` but NOT as a win, so
+        # win_rate = wins/settled treats a scratch as a non-win. Both numbers are
+        # published so the gap is visible rather than hidden inside the rate.
         if float(r.get("pnl") or 0.0) > 0:
             wins[leg] += 1
     return {

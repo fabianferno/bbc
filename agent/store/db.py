@@ -343,6 +343,10 @@ def positions_with_market(
 ) -> list[dict[str, Any]]:
     """Positions newest-first, each enriched with its market `question` and `venue`.
 
+    `venue` is the MARKET's venue (matching the old LEFT JOIN), which erases the
+    position's own `venue="simulated"` backtest marker. The raw position venue is
+    preserved as `position_venue` — filter on THAT to exclude backtest rows.
+
     `wallet` restricts to positions whose entry decision was anchored on-chain from
     that address (personal mode); omitted → the full shared agent record.
     """
@@ -355,6 +359,7 @@ def positions_with_market(
     for r in rows:
         m = markets.get(r["market_id"])
         r["question"] = m["question"] if m else None
+        r["position_venue"] = r.get("venue")  # raw position venue; "simulated" == backtest
         r["venue"] = m["venue"] if m else r.get("venue")  # market venue overrides (matches old LEFT JOIN)
     return rows
 
