@@ -24,6 +24,7 @@ function LegRow({ leg, perf }: { leg: "fast" | "slow"; perf: LegPerformance }) {
         <Pill tone={leg === "fast" ? "red" : "monitor"}>{leg.toUpperCase()}</Pill>
       </td>
       <td className="numeric px-3 py-3 text-right text-[14px] text-dim">{perf.settled}</td>
+      <td className="numeric px-3 py-3 text-right text-[14px] text-dim">{perf.wins}</td>
       <td className="numeric px-3 py-3 text-right text-[14px] text-white">
         {perf.win_rate == null ? "no settled trades" : fmtPct(perf.win_rate)}
       </td>
@@ -53,13 +54,16 @@ export function LegPerformancePanel({
         Each barbell sleeve is reported on its own line. A trade is scored under
         the leg it was opened under, even if it later ran long — a drifted fast
         trade is reported as a failed fast trade, not folded into the slow leg.
+        Win rate is wins ÷ settled: a break-even settlement counts in Settled but
+        not as a win, so it lowers the rate rather than being quietly dropped.
       </p>
       <div className="monitor overflow-x-auto">
-        <table className="w-full min-w-[480px] border-collapse text-left">
+        <table className="w-full min-w-[560px] border-collapse text-left">
           <thead>
             <tr className="border-b border-rule">
               <th className="chyron px-4 py-2.5 font-bold text-faint">Leg</th>
               <th className="chyron px-3 py-2.5 text-right font-bold text-faint">Settled</th>
+              <th className="chyron px-3 py-2.5 text-right font-bold text-faint">Wins</th>
               <th className="chyron px-3 py-2.5 text-right font-bold text-faint">Win rate</th>
               <th className="chyron px-4 py-2.5 text-right font-bold text-faint">
                 Realized P&L (notional)

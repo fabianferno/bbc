@@ -30,7 +30,7 @@ export function FlywheelPanel({ flywheel }: { flywheel: FlywheelResp }) {
           <div className="headline numeric mt-2 text-2xl leading-none text-white">
             {fmtUsd(flywheel.realized_profit_usd)}
           </div>
-          <div className="mt-1.5 text-[12px] text-faint">across {flywheel.events.length} profitable settlements</div>
+          <div className="mt-1.5 text-[12px] text-faint">across {flywheel.event_count} profitable settlements</div>
         </div>
         <div className="px-5 py-4">
           <div className="chyron text-faint">Would-be treasury share</div>
@@ -45,7 +45,7 @@ export function FlywheelPanel({ flywheel }: { flywheel: FlywheelResp }) {
             {fmtUsd(flywheel.ansem_usd)}
           </div>
           <div className="mt-1.5 text-[12px] text-faint">
-            {flywheel.ansem_qty.toFixed(4)} $ANSEM at simulated spot · 35% split
+            {flywheel.ansem_qty.toFixed(4)} $ANSEM at live spot — price is real, purchase simulated · 35% split
           </div>
         </div>
         <div className="px-5 py-4">

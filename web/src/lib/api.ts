@@ -199,9 +199,10 @@ export type FlywheelEvent = {
 };
 
 export type FlywheelResp = {
-  // `/api/flywheel` spreads `flywheel.totals()` (which has its own scalar
-  // `events` count) and then overwrites `events` with the actual event log —
-  // so the field that survives on the wire is the array, not the count.
+  // `/api/flywheel` spreads `flywheel.totals()` — whose scalar count is
+  // `event_count` — alongside `events`, the event log itself. Both survive on
+  // the wire, so totals can be reconciled against the visible events.
+  event_count: number;
   events: FlywheelEvent[];
   realized_profit_usd: number;
   treasury_usd: number;
