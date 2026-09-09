@@ -75,7 +75,10 @@ def check_daily_loss() -> BreakerCheck:
         return persisted
     with db.connect() as conn:
         pnl = db.positions_today_pnl(conn)
-    threshold = -settings.agent_daily_loss_cap * settings.agent_bankroll
+    # Denominate against the notional treasury (sizing.py draws position size from the
+    # same book), falling back to agent_bankroll only when the treasury is unseeded.
+    book = ledger.balance() or settings.agent_bankroll
+    threshold = -settings.agent_daily_loss_cap * book
     if pnl <= threshold:
         expires = (datetime.now(UTC) + DAILY_LOSS_COOLDOWN).isoformat()
         with db.connect() as conn:

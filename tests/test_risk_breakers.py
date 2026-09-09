@@ -96,6 +96,81 @@ def test_no_leverage_empty_treasury_sizes_to_zero(monkeypatch):
     assert sd.usd == 0.0
 
 
+def _open_and_close(*, notional_in: float, notional_out: float) -> None:
+    from agent.store import db
+
+    with db.connect() as conn:
+        pos_id = db.open_position(
+            conn,
+            {
+                "market_id": "m-daily-loss",
+                "venue": "manifold",
+                "side": "YES",
+                "shares": 10.0,
+                "entry_price": 0.5,
+                "notional_in": notional_in,
+            },
+        )
+        db.close_position(
+            conn,
+            pos_id,
+            exit_price=0.1,
+            notional_out=notional_out,
+            exit_decision_id=None,
+            venue_exit_order=None,
+            p_yes_at_exit=0.1,
+        )
+
+
+def test_daily_loss_threshold_scales_with_treasury(monkeypatch):
+    """The cap is 20% of the notional TREASURY (10_000), not the legacy $50 bankroll.
+
+    `db.close_position` does not itself move the ledger, so the treasury balance
+    stays at the seeded value for both checks below.
+    """
+    from agent.config import settings
+
+    ledger.seed_if_empty()
+    book = ledger.balance()
+    assert book == settings.agent_treasury_seed
+
+    # Loss bigger than 20% of agent_bankroll (-10) but well inside 20% of treasury (-2000).
+    _open_and_close(notional_in=100.0, notional_out=85.0)  # pnl = -15
+    assert not safety.check_daily_loss().tripped
+
+
+def test_daily_loss_threshold_trips_beyond_treasury_cap():
+    from agent.store import db
+
+    ledger.seed_if_empty()
+    book = ledger.balance()
+    threshold = -0.20 * book
+    loss = threshold - 1.0  # just past the treasury-scaled cap
+
+    with db.connect() as conn:
+        pos_id = db.open_position(
+            conn,
+            {
+                "market_id": "m-daily-loss-2",
+                "venue": "manifold",
+                "side": "YES",
+                "shares": 10.0,
+                "entry_price": 0.5,
+                "notional_in": 3000.0,
+            },
+        )
+        db.close_position(
+            conn,
+            pos_id,
+            exit_price=0.1,
+            notional_out=3000.0 + loss,
+            exit_decision_id=None,
+            venue_exit_order=None,
+            p_yes_at_exit=0.1,
+        )
+    assert safety.check_daily_loss().tripped
+
+
 def test_risk_params_exported_for_dashboard():
     for key in (
         "max_position_fraction",
