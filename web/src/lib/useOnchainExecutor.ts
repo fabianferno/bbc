@@ -3,8 +3,9 @@
 // Explicit `buffer` import: Turbopack does not polyfill a global Buffer in
 // client bundles, and @solana/web3.js types instruction data as Buffer.
 import { Buffer } from "buffer";
-import { useCallback } from "react";
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { useCallback, useMemo } from "react";
+import bs58 from "bs58";
+import { useSignAndSendTransaction, useWallets } from "@privy-io/react-auth/solana";
 import {
   PublicKey,
   Transaction,
@@ -22,7 +23,9 @@ import {
   MEMO_PROGRAM_ID,
   SOLANA_TREASURY_ADDRESS,
   USDC_DEVNET_MINT,
+  SOLANA_CAIP2,
   explorerTxUrl,
+  getConnection,
   toPublicKey,
 } from "./solana";
 import type { AnchorRequest, OnchainTx, SettleRequest } from "./types";
@@ -43,32 +46,54 @@ export type OnchainExecutor = {
  * settle → an SPL token transfer (USDC-devnet, or $BBC once its mint is set).
  */
 export function useOnchainExecutor(): OnchainExecutor {
-  const { connection } = useConnection();
-  const { publicKey, sendTransaction } = useWallet();
+  const connection = getConnection();
+  const { wallets } = useWallets();
+  const { signAndSendTransaction } = useSignAndSendTransaction();
   // signer address — recorded as from_address so the ledger can attribute these
   // txns (and their positions) to this user in personal mode.
   const { address } = useAuth();
 
+  const wallet = wallets[0] ?? null;
+  const publicKey = useMemo(() => toPublicKey(address), [address]);
+
   const send = useCallback(
     async (instructions: TransactionInstruction[], payer: PublicKey) => {
+      if (!wallet) throw new Error("Sign in first.");
       const tx = new Transaction().add(...instructions);
       tx.feePayer = payer;
       const { blockhash, lastValidBlockHeight } =
         await connection.getLatestBlockhash();
       tx.recentBlockhash = blockhash;
-      const signature = await sendTransaction(tx, connection);
+
+      // Privy takes the serialised wire format, not a web3.js Transaction, and
+      // the transaction is unsigned here — requireAllSignatures must be off or
+      // serialize() throws on the missing signature.
+      const wire = tx.serialize({
+        requireAllSignatures: false,
+        verifySignatures: false,
+      });
+      const { signature: sigBytes } = await signAndSendTransaction({
+        transaction: new Uint8Array(wire),
+        wallet,
+        // Privy defaults to mainnet. This build is devnet, so the cluster is
+        // named explicitly — otherwise the txn is broadcast to the wrong chain.
+        chain: SOLANA_CAIP2,
+      });
+      // Privy returns raw signature bytes; the ledger stores base58.
+      const signature = bs58.encode(sigBytes);
+
       await connection.confirmTransaction(
         { signature, blockhash, lastValidBlockHeight },
         "confirmed",
       );
       return signature;
     },
-    [connection, sendTransaction],
+    [connection, signAndSendTransaction, wallet],
   );
 
   const anchor = useCallback(
     async (req: AnchorRequest): Promise<OnchainTx> => {
-      if (!publicKey) throw new Error("Connect a Solana wallet first.");
+      if (!publicKey) throw new Error("Sign in to sign this transaction.");
       const memo = new TransactionInstruction({
         keys: [{ pubkey: publicKey, isSigner: true, isWritable: true }],
         programId: MEMO_PROGRAM_ID,
@@ -90,7 +115,7 @@ export function useOnchainExecutor(): OnchainExecutor {
 
   const settle = useCallback(
     async (req: SettleRequest): Promise<OnchainTx> => {
-      if (!publicKey) throw new Error("Connect a Solana wallet first.");
+      if (!publicKey) throw new Error("Sign in to sign this transaction.");
 
       // Prefer $BBC once its mint exists; otherwise the devnet USDC stand-in.
       // Anything the server sent that isn't valid base58 (e.g. a legacy EVM

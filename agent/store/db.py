@@ -188,6 +188,23 @@ def recent_decisions(
     return [_row(r) for r in cur]
 
 
+def latest_graph_decision_id(conn: Database, market_id: str) -> int | None:
+    """Newest entry decision for `market_id` that actually has a stored graph.
+
+    The most recent decision is not necessarily the most useful one to show: a run
+    where search returned nothing produces a decision with no graph_run. Walk back
+    until one with a graph is found so the UI hydrates a populated board rather
+    than an empty one.
+    """
+    cur = conn["decisions"].find(
+        {"market_id": market_id, "kind": "entry"}, {"_id": 1}
+    ).sort("_id", DESCENDING).limit(25)
+    for row in cur:
+        if conn["graph_runs"].find_one({"_id": row["_id"]}, {"_id": 1}):
+            return int(row["_id"])
+    return None
+
+
 def latest_prior_p_yes(conn: Database, market_id: str) -> float | None:
     row = conn["decisions"].find_one(
         {"market_id": market_id, "p_yes": {"$ne": None}}, sort=[("_id", DESCENDING)]

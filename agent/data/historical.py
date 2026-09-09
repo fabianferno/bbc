@@ -21,11 +21,12 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 from agent.config import settings
 from agent.data.manifold import ManifoldClient
 from agent.data.polymarket_gamma import GammaClient
+from agent.http_retry import retry_transient
 from agent.logging import get_logger
 from agent.store import db
 
@@ -50,7 +51,7 @@ DEFAULT_MANIFOLD_TOPICS: tuple[str, ...] = (
 
 @retry(
     reraise=True,
-    retry=retry_if_exception_type((httpx.HTTPError,)),
+    retry=retry_transient,
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=1, max=10),
 )

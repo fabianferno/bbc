@@ -46,7 +46,7 @@ export function AuthControls() {
       <Button
         variant="ghost"
         onClick={login}
-        aria-label="Connect your wallet"
+        aria-label="Sign in"
         className="whitespace-nowrap px-2.5 sm:px-3.5"
       >
         <Wallet
@@ -54,8 +54,8 @@ export function AuthControls() {
           strokeWidth={2}
           aria-hidden
         />
-        <span className="sm:hidden">Connect</span>
-        <span className="hidden sm:inline">Connect wallet</span>
+        <span className="sm:hidden">Sign in</span>
+        <span className="hidden sm:inline">Sign in</span>
       </Button>
     );
   }

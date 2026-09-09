@@ -65,7 +65,7 @@ reads it out.
 2. **Verifiable on-chain traces.** The full trace (ontology + graph + evidence + decision) is
    canonicalised, hashed (sha256), and the hash is **anchored on Solana** in a memo/anchor
    transaction. Anyone can re-hash the trace in their browser and confirm it matches the chain.
-3. **A real autonomous engine underneath.** Filters → ambiguity check → date-bounded Tavily
+3. **A real autonomous engine underneath.** Filters → ambiguity check → date-bounded Exa
    search (temporal-guarded against leakage) → graph-augmented reasoning → calibrated fractional
    Kelly sizing → paper/dry-run execution. Circuit breakers the LLM cannot bypass.
 
@@ -120,7 +120,7 @@ Design spec (historical, pre-rename): [`docs/superpowers/specs/2026-05-25-openmi
 ```bash
 uv venv && source .venv/bin/activate
 uv pip install -e ".[dev]"
-cp .env.example .env        # fill in AWS (Bedrock/Nova), Tavily, and the Solana wallet key
+cp .env.example .env        # fill in AWS (Bedrock/Nova), Exa, and the Solana wallet key
 mkdir -p data logs
 python -m agent init-db
 

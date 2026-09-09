@@ -59,13 +59,13 @@ BBC makes the reasoning the product and the broadcast the interface. For each pr
    hashes it (sha256), and anchors the hash in a Solana memo transaction. Anyone can re-hash the
    trace in their browser at `/verify/<id>` and confirm it matches the chain.
 
-**Pipeline:** discovery → cheap filters → ambiguity check → date-bounded Tavily search (temporal
+**Pipeline:** discovery → cheap filters → ambiguity check → date-bounded Exa search (temporal
 guard) → GraphRAG (ontology → entities → graph) → graph-augmented reasoning → calibrated Kelly
 sizing → execution → Solana anchor. It runs fully autonomously (`agent cycle` / `agent loop`) — no
 human picks the markets.
 
 **Stack:** Python agent engine; **Amazon Nova Lite via AWS Bedrock** for reasoning (~$0.015 per
-full analysis, ~$0.008 per decision); Tavily for date-bounded search; a FastAPI sidecar streaming
+full analysis, ~$0.008 per decision); Exa for date-bounded search; a FastAPI sidecar streaming
 each live build over SSE; MongoDB for graph runs, trace blobs and on-chain anchors; Solana for
 trace anchoring and the $BBC mint; Next.js + Tailwind for the broadcast front end (Terminal,
 Reasoning Room, Verify, Ledger).

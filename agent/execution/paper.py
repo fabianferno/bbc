@@ -12,11 +12,19 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from agent.config import settings
 from agent.data.manifold import ManifoldClient
 from agent.logging import get_logger
 from agent.store import db
 
 log = get_logger(__name__)
+
+
+# Manifold rejects any bet below 1 mana with a 400 ("amount: Number must be greater
+# than or equal to 1"). Kelly output scaled by the calibration multiplier routinely
+# lands under that for marginal-edge entries, so the venue minimum is enforced here
+# rather than surfacing as a failed order.
+MIN_BET_MANA = 1.0
 
 
 class ManifoldExecutor:
@@ -35,6 +43,23 @@ class ManifoldExecutor:
         # Manifold uses mana 1:1 with USD for our purposes (no fees on play money).
         # limitProb is in [0.01, 0.99] with step 0.01.
         limit = min(0.99, max(0.01, round(target_price, 2)))
+
+        # Round a sub-minimum stake up to the venue floor. The overshoot is bounded by
+        # MIN_BET_MANA and stays inside the per-market cap, which — along with the
+        # daily-loss and max-position breakers in execution/safety.py — still binds.
+        # If the floor itself exceeds the cap, the position is not expressible: skip
+        # rather than knowingly breach the cap.
+        if usd_size < MIN_BET_MANA:
+            cap = settings.agent_per_market_cap
+            if MIN_BET_MANA > cap:
+                raise ValueError(
+                    f"venue minimum {MIN_BET_MANA} exceeds per-market cap {cap}"
+                )
+            log.info(
+                "paper.entry.size_raised_to_venue_min",
+                market_id=market["id"], requested=usd_size, placed=MIN_BET_MANA,
+            )
+            usd_size = MIN_BET_MANA
         resp = self._client.place_bet(
             contract_id=market["external_id"],
             outcome=side,

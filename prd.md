@@ -60,7 +60,7 @@ If any metric fails at a phase, stop. Diagnose. Either fix or kill the project. 
 - **Bankroll**: $20-50 at real-money phase. Treat as a learning budget that may go to zero.
 - **Language**: Python only.
 - **LLM**: Claude (Anthropic API) for reasoning. Cost-aware — each decision should cost <$0.05 in tokens.
-- **Search**: Tavily for date-bounded web search (cheaper than Brave for agent use cases, supports `published_date` filtering needed for leakage prevention).
+- **Search**: Exa for date-bounded web search. Selected because it returns a per-result `publishedDate` and supports server-side `endPublishedDate` bounds — both required for leakage prevention. A provider that omits publication dates cannot be substituted: `temporal_guard` drops undated results, so the evidence feed would silently empty rather than fail. Prediction-market venues and their mirrors are excluded from results, since those pages restate the market's own price (circular) and, once resolved, the outcome (a direct leak).
 - **Storage**: SQLite locally. No cloud DB.
 - **Scheduler**: Plain cron, 15-30 min cycle.
 - **Wallet/signing**: `py-clob-client` (official Polymarket SDK) for trading, `web3.py` for any direct contract calls.
@@ -90,8 +90,8 @@ The agent's edge, if any, comes from:
 Every market must pass all filters before reaching the reasoning layer:
 
 - **Category**: geopolitics, world events, politics, technology, regulatory, scheduled-event crypto (NOT 5-minute price). Geopolitics + world events are prioritized — they're fee-free on Polymarket.
-- **Liquidity**: 24h volume > $5,000 *and* order book depth > $500 within 5¢ of mid.
-- **Time to resolution**: between 3 days and 45 days. Shorter than 3 days → not enough time for reasoning to pay off. Longer than 45 days → too much can change.
+- **Liquidity**: 24h volume > $5,000 *and* order book depth > $500 within 5¢ of mid. **Venue-aware:** Manifold trades in play-money mana, ~2 orders of magnitude below Polymarket USD volume, so the paper venue uses a 100-mana floor. Measured over 572 open Manifold markets in the configured topics, only 1 clears $5,000/24h while 26 clear 100 mana — applying the USD threshold to mana rejects the entire venue.
+- **Time to resolution**: between 3 days and 45 days on Polymarket. Shorter than 3 days → not enough time for reasoning to pay off. Longer than 45 days → too much can change. **Venue-aware:** Manifold's liquid inventory sits further out — zero open Manifold markets in the configured topics resolve inside 45 days, while 14 resolve inside 180 — so the paper venue uses a 180-day ceiling. This loosens the "too much can change" constraint on paper only; the dryrun/live Polymarket path keeps 45 days. Paper Brier/ECE are therefore measured over longer-horizon forecasts than the live gate will be, and are not directly comparable.
 - **Resolution clarity**: resolution criteria pass a separate "ambiguity check" sub-prompt. Markets resolving via subjective UMA proposal language ("officially", "credibly", "by") are auto-rejected.
 - **Current price**: between $0.08 and $0.92. Markets outside this range have already resolved in practice; remaining edge is in the last basis points and is dominated by noise.
 - **Not in agent blocklist**: a manual blocklist of markets the operator considers off-limits (e.g., personally distressing topics, markets the operator has insider info on).
@@ -150,7 +150,7 @@ agent/
 │   └── historical.py          # Resolved-market dump for backtest
 ├── reasoning/
 │   ├── claude_client.py       # Anthropic API wrapper, token accounting
-│   ├── search.py              # Tavily client with date-bounded queries
+│   ├── search.py              # Exa client with date-bounded queries
 │   ├── prompts.py             # Entry prompt, exit prompt, ambiguity check
 │   └── temporal_guard.py      # Enforces date bounds on all search results
 ├── strategy/
@@ -312,7 +312,7 @@ Three distinct prompts, not one:
 
 The backtest is only meaningful if the agent at sample-time T can only see information dated ≤ T. This is enforced at three levels:
 
-1. `temporal_guard.py` filters Tavily results by `published_date`.
+1. `temporal_guard.py` filters search results by `published_date`.
 2. Prompts include explicit instructions to ignore any content that appears to post-date T.
 3. The leakage check test: run the backtest with date bound set to *after* resolution (intentional leak). If overall Brier doesn't improve dramatically (delta > 0.05), the leak prevention is broken and the clean results are not trustworthy.
 
@@ -342,7 +342,7 @@ These need answers before or during early build, not deferred:
 
 1. **Manifold liquidity for the chosen market types**: Manifold play-money markets have different volume distributions than Polymarket. Need to verify there are enough resolving markets of relevant categories to hit 100+ in 4 weeks. If not, paper trading phase needs supplementing with simulated fills on real Polymarket prices.
 
-2. **Tavily date-bound reliability**: Need to verify in practice that Tavily's `published_date` filter is reliably enforced and doesn't return undated or back-dated content. If unreliable, fall back to a custom URL allowlist with known-good date metadata sources.
+2. **Search date-bound reliability**: Exa's `endPublishedDate` is re-verified client-side by `temporal_guard`, which drops undated results by default. Spot-checked against live traffic: with `as_of` backdated 180 days, 8/8 results were correctly bounded with zero post-dated leaks. Undated results are common (roughly half a live result set), so recall depends on the guard staying strict rather than on the provider alone.
 
 3. **py-clob-client signature format**: Verify the client handles EIP-712 signing correctly for the agent's wallet setup, particularly if using a fresh wallet without prior on-chain history.
 

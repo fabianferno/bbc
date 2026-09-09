@@ -121,7 +121,7 @@ def plan_entry(
     tav = search.get_client()
     hits: list[dict[str, Any]] = []
     try:
-        broad = tav.search(market["question"], as_of=as_of, max_results=settings.tavily_max_results)
+        broad = tav.search(market["question"], as_of=as_of, max_results=settings.search_max_results)
         hits.extend(h.to_dict() for h in broad)
         # targeted second pass: pull a key phrase from the question
         targeted_q = market["question"]
@@ -140,7 +140,7 @@ def plan_entry(
         if u and u not in seen_urls:
             seen_urls.add(u)
             deduped.append(h)
-    hits = deduped[: settings.tavily_max_results * 2]
+    hits = deduped[: settings.search_max_results * 2]
     _emit("search_complete", {"n": len(hits)})
 
     # 3.5 GraphRAG — build an ontology + entity graph from the date-bounded evidence.

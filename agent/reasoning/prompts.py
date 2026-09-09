@@ -24,6 +24,7 @@ AMBIGUITY_SYSTEM = (
     "unambiguously determinable from public information by the stated resolution date. "
     "You reject anything that depends on subjective UMA-style phrasing like 'officially', "
     "'credibly', 'by [vague date]' unless the wording is tight. "
+    "You judge the criterion itself, never the completeness of the supplied metadata. "
     "Reply only with valid JSON matching the requested schema."
 )
 
@@ -50,23 +51,36 @@ EXIT_SYSTEM = (
 # ---------- user prompts ----------
 
 def build_ambiguity_prompt(market: dict[str, Any]) -> str:
-    return f"""Market: {market["question"]}
+    """Ask whether the resolution criterion is objectively determinable.
 
-Resolution rules:
-{market.get("resolution_rules") or "(none provided)"}
-
-Resolution source: {market.get("resolution_source") or "(unspecified)"}
-End date: {market.get("end_date") or "(unspecified)"}
-
-Decide whether the resolution outcome is unambiguously determinable from public information
-by the end date. Subjective phrasing (officially, credibly, by [vague date], etc.) without
-tight scoping is grounds for rejection.
+    Absent metadata fields are OMITTED rather than rendered as "(none provided)".
+    That placeholder is a strong negative cue: smaller models anchor on it and
+    reject the market for missing metadata instead of judging the wording. Many
+    venues (Manifold especially) ship no separate rules text at all — there the
+    question itself is the criterion. Measured over 15 open Manifold markets,
+    the placeholder form passed 0; omitting the empty fields passed 14.
+    """
+    parts = [f"Market: {market['question']}"]
+    if market.get("resolution_rules"):
+        parts.append("Resolution rules:\n" + str(market["resolution_rules"]))
+    if market.get("resolution_source"):
+        parts.append("Resolution source: " + str(market["resolution_source"]))
+    if market.get("end_date"):
+        parts.append("End date: " + str(market["end_date"]))
+    parts.append("""Decide whether the resolution outcome is unambiguously determinable from public
+information by the end date. Judge only the wording of the question above. Reject
+only if two reasonable people reading the public record on the end date could
+disagree about the outcome — genuinely subjective or unscoped terms ("major",
+"woke", "credibly", "officially", a vague date). A question naming a verifiable
+public outcome (an election result, an official appointment, a published
+statistic) is unambiguous.
 
 Respond in this exact JSON shape:
-{{
+{
   "unambiguous": true | false,
   "rationale": "<one sentence>"
-}}"""
+}""")
+    return "\n\n".join(parts)
 
 
 def _format_search(results: list[dict[str, Any]]) -> str:

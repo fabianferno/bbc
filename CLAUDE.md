@@ -4,11 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-`bbc` — **BBC, the Bull Broadcasting Corporation**: an autonomous prediction-market trading agent (Polymarket + Manifold) that reports its own reasoning, positions and P&L as a live news broadcast. It is driven by an LLM reasoning loop (Claude/Nova via AWS Bedrock) and Tavily search, with a GraphRAG layer (`agent/graphrag/`) that builds a per-market entity graph feeding the forecast, and an on-chain layer (`agent/onchain/`) that anchors each reasoning trace on **Solana** (memo/anchor transaction). The token is **$BBC** on Solana, launched via ClawPump for The AnsemHack — see `PRODUCT.md` for product truth and `hackathon.md` for competition rules.
+`bbc` — **BBC, the Bull Broadcasting Corporation**: an autonomous prediction-market trading agent (Polymarket + Manifold) that reports its own reasoning, positions and P&L as a live news broadcast. It is driven by an LLM reasoning loop (Amazon Nova via AWS Bedrock) and Exa search, with a GraphRAG layer (`agent/graphrag/`) that builds a per-market entity graph feeding the forecast, and an on-chain layer (`agent/onchain/`) that anchors each reasoning trace on **Solana** (memo/anchor transaction). The token is **$BBC** on Solana, launched via ClawPump for The AnsemHack — see `PRODUCT.md` for product truth and `hackathon.md` for competition rules.
 
 Phased build: backtest → paper (Manifold) → dryrun (Polymarket, no orders sent) → live. Phase transitions are gated by pre-committed metrics in `prd.md` §3 (Brier, ECE, ROI, sample size, leakage check). Read `prd.md` before non-trivial design changes — it is the source of truth for what the system is supposed to do and why.
 
 **Naming:** the distribution name and console script are `bbc`; the Python package directory stays `agent/`, so every import is unchanged (`from agent... import ...`). Do not rename the package.
+
+**Auth:** the web app signs in through **Privy** (`@privy-io/react-auth`), not `@solana/wallet-adapter`. Email/Google users get an embedded Solana wallet; external wallets (Phantom, Solflare) come through Privy's connectors. The browser needs only `NEXT_PUBLIC_PRIVY_APP_ID`; `PRIVY_APP_SECRET` is server-side and must never be exposed through a `NEXT_PUBLIC_*` variable.
 
 **Phase honesty:** the shipped alpha runs in `paper` mode (Manifold play-money). Never describe paper P&L as realized cash — in code, log lines, UI copy, or docs. Any performance figure must carry the mode that produced it.
 
@@ -55,7 +57,7 @@ Each cycle: (1) check circuit breakers — if any tripped, halt and alert; (2) c
 
 ### Layered packages
 - `agent/data/` — market clients: `manifold.py`, `polymarket_gamma.py` (discovery), `polymarket_clob.py` (orderbook + signed orders), `historical.py` (hydration of resolved markets for backtests). All clients normalise to a common market dict that gets upserted via `store/db.py::upsert_market`.
-- `agent/reasoning/` — `claude_client.py` (Bedrock wrapper with per-decision and per-day USD caps), `search.py` (Tavily with date-bounded queries), `prompts.py` (ambiguity check + entry/exit reasoning), `temporal_guard.py` (rejects search results published after a market's reasoning cutoff — this is what `leakage-check` validates).
+- `agent/reasoning/` — `claude_client.py` (Bedrock wrapper with per-decision and per-day USD caps), `search.py` (Exa with date-bounded queries, behind a `SearchProvider` protocol), `prompts.py` (ambiguity check + entry/exit reasoning), `temporal_guard.py` (rejects search results published after a market's reasoning cutoff — this is what `leakage-check` validates).
 - `agent/strategy/` — `filters.py` (liquidity / category / blocklist pre-filter, cheap), `entry.py` (LLM-driven entry plan), `exit.py` (LLM-driven exit decisions on open positions), `sizing.py` (Kelly-ish with category calibration), `calibration.py` (per-category Brier/ECE → multiplier on bet size).
 - `agent/execution/` — `paper.py` (`ManifoldExecutor`), `live.py` (`LiveExecutor` for Polymarket; the same class handles `dryrun` by short-circuiting submission), `safety.py` (hard-coded breakers — daily loss cap, max open positions, per-market cap, slippage guard, API-failure cooldown, manual trip. The LLM cannot bypass these).
 - `agent/backtest/` — `harness.py` (replays cached snapshots), `leakage_check.py` (Phase 1 gate), `metrics.py` (Brier/ECE/ROI).

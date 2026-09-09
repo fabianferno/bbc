@@ -22,12 +22,12 @@ import boto3
 from botocore.config import Config as BotoConfig
 from tenacity import (
     retry,
-    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
 )
 
 from agent.config import settings
+from agent.http_retry import retry_transient_bedrock
 from agent.logging import get_logger
 from agent.store import db
 
@@ -139,7 +139,7 @@ class BedrockClient:
 
     @retry(
         reraise=True,
-        retry=retry_if_exception_type(Exception),
+        retry=retry_transient_bedrock,
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=20),
     )

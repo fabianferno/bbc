@@ -13,6 +13,17 @@ export const api = {
   discover: () =>
     fetch(`${API_BASE}/api/discover`, { method: "POST" }).then((r) => r.json()),
   trace: (id: number) => getJSON<TraceResp>(`/api/trace/${id}`),
+  // Most recent graph-bearing decision for a market, so the analyze page can show
+  // prior work instead of an empty board. 404 simply means "never analysed".
+  latestForMarket: async (marketId: string): Promise<DecisionResp | null> => {
+    const res = await fetch(
+      `${API_BASE}/api/markets/${encodeURIComponent(marketId)}/latest`,
+      { cache: "no-store" },
+    );
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`${res.status} latest`);
+    return res.json() as Promise<DecisionResp>;
+  },
   decision: (id: number) => getJSON<DecisionResp>(`/api/decisions/${id}`),
   // wallet (personal mode) restricts to positions/txns tied to that signer; omit for the shared agent record.
   portfolio: (wallet?: string | null) =>

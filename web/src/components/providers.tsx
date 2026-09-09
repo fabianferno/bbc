@@ -1,32 +1,41 @@
 "use client";
 
-import { useMemo } from "react";
-import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
-import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
-import {
-  PhantomWalletAdapter,
-  SolflareWalletAdapter,
-} from "@solana/wallet-adapter-wallets";
+import { PrivyProvider } from "@privy-io/react-auth";
+import { toSolanaWalletConnectors } from "@privy-io/react-auth/solana";
 import { DemoModeProvider } from "@/lib/demo-mode";
-import { SOLANA_RPC_ENDPOINT } from "@/lib/solana";
+import { PRIVY_APP_ID } from "@/lib/solana";
 
-// The wallet-adapter modal ships its own stylesheet; imported once, here.
-import "@solana/wallet-adapter-react-ui/styles.css";
+// External Solana wallets (Phantom, Solflare, …) are surfaced through Privy's
+// connector rather than @solana/wallet-adapter, so there is one auth path for
+// both crypto-native users and email/social users on an embedded wallet.
+const solanaConnectors = toSolanaWalletConnectors();
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  // Adapters are stateful — build them once for the app's lifetime.
-  const wallets = useMemo(
-    () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
-    [],
-  );
+  // Without an app id Privy throws on mount and takes the whole page with it.
+  // Render the app unauthenticated instead: the desk is read-only anyway, and a
+  // missing key should degrade to "can't sign in", not a blank screen.
+  if (!PRIVY_APP_ID) {
+    return <DemoModeProvider>{children}</DemoModeProvider>;
+  }
 
   return (
-    <ConnectionProvider endpoint={SOLANA_RPC_ENDPOINT}>
-      <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider>
-          <DemoModeProvider>{children}</DemoModeProvider>
-        </WalletModalProvider>
-      </WalletProvider>
-    </ConnectionProvider>
+    <PrivyProvider
+      appId={PRIVY_APP_ID}
+      config={{
+        loginMethods: ["email", "google", "wallet"],
+        // Anyone arriving without a wallet gets an embedded Solana one, so a
+        // first-time viewer can sign an anchor without installing an extension.
+        embeddedWallets: { solana: { createOnLogin: "users-without-wallets" } },
+        externalWallets: { solana: { connectors: solanaConnectors } },
+        appearance: {
+          theme: "dark",
+          accentColor: "#e01a2b",
+          walletChainType: "solana-only",
+          logo: "/logo.png",
+        },
+      }}
+    >
+      <DemoModeProvider>{children}</DemoModeProvider>
+    </PrivyProvider>
   );
 }

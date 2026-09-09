@@ -27,6 +27,7 @@ from agent.logging import get_logger
 from agent.monitor import alerts, positions
 from agent.store import db
 from agent.strategy import entry as entry_mod
+from agent.strategy import filters
 
 log = get_logger(__name__)
 
@@ -80,21 +81,51 @@ def _discover_polymarket() -> list[dict[str, Any]]:
 
 
 def _discover_manifold() -> list[dict[str, Any]]:
+    """Discover open Manifold markets, one configured topic at a time.
+
+    Topic-scoped search (not the flat /v0/markets list) is deliberate: the list
+    endpoint omits `groupSlugs`, so every market it returns normalises to
+    category="manifold" and is then rejected wholesale by `filters.category_ok`.
+    Searching per topic makes the topic slug the recorded category — the same
+    approach `data/historical.py` uses for hydration.
+    """
+    from agent.data.historical import DEFAULT_MANIFOLD_TOPICS
     from agent.data.manifold import ManifoldClient
+
     client = ManifoldClient()
     try:
         out: list[dict[str, Any]] = []
-        for mm in client.iter_markets(limit_per_page=500, max_pages=2):
-            if mm.is_resolved or mm.outcome_type not in ("BINARY", "PSEUDO_NUMERIC"):
-                continue
-            row = mm.to_market_dict()
-            with db.connect() as conn:
-                mid = db.upsert_market(conn, row)
-                stored = db.get_market(conn, mid)
-            if stored:
-                out.append(stored)
+        seen: set[str] = set()
+        for topic in DEFAULT_MANIFOLD_TOPICS:
             if len(out) >= MAX_CANDIDATES_PER_CYCLE * 3:
                 break
+            for mm in client.search_markets(
+                topic_slug=topic,
+                filter_="open",
+                sort="most-popular",
+                limit_per_page=100,
+                max_pages=2,
+            ):
+                if mm.id in seen:
+                    continue
+                seen.add(mm.id)
+                if mm.is_resolved or mm.outcome_type not in ("BINARY", "PSEUDO_NUMERIC"):
+                    continue
+                row = mm.to_market_dict()
+                with db.connect() as conn:
+                    mid = db.upsert_market(conn, row)
+                    stored = db.get_market(conn, mid)
+                if not stored:
+                    continue
+                # Pre-filter here so the candidate budget counts survivors, not
+                # rejects — otherwise the first topic exhausts the cap with
+                # markets the filter drops and later topics are never reached.
+                if not filters.passes_all(stored).accepted:
+                    continue
+                out.append(stored)
+                if len(out) >= MAX_CANDIDATES_PER_CYCLE * 3:
+                    break
+        log.info("discover.manifold", topics=len(DEFAULT_MANIFOLD_TOPICS), found=len(out))
         return out[:MAX_CANDIDATES_PER_CYCLE]
     finally:
         client.close()

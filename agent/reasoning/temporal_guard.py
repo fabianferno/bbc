@@ -22,7 +22,7 @@ log = get_logger(__name__)
 
 
 def parse_iso(s: str | None) -> datetime | None:
-    """Parse a date string. Accepts ISO-8601 and RFC 2822 (Tavily news mode)."""
+    """Parse a date string. Accepts ISO-8601 and RFC 2822."""
     if not s:
         return None
     s = s.strip()
@@ -30,7 +30,7 @@ def parse_iso(s: str | None) -> datetime | None:
         return datetime.fromisoformat(s.replace("Z", "+00:00"))
     except (ValueError, TypeError):
         pass
-    # Tavily's `topic=news` returns RFC 2822: 'Wed, 06 Nov 2024 08:26:00 +0000'
+    # Some news feeds return RFC 2822: 'Wed, 06 Nov 2024 08:26:00 +0000'
     try:
         from email.utils import parsedate_to_datetime
         dt = parsedate_to_datetime(s)

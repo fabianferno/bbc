@@ -1,34 +1,23 @@
-# pnpm 10+ reads build-script approval from here, not package.json.
-
-# Built, because this app needs them compiled: sharp (next/image),
-# unrs-resolver (eslint), bigint-buffer and protobufjs (Solana web3).
-onlyBuiltDependencies:
-  - sharp
-  - unrs-resolver
-  - bigint-buffer
-  - protobufjs
-
-# Deliberately not built. These are hardware-wallet and native-socket
-# transitives pulled in by @solana/wallet-adapter-wallets; nothing here signs
-# with a Ledger or opens a raw USB/WebSocket handle, and compiling them adds
-# native toolchain requirements the deploy does not have. Listed explicitly so
-# pnpm does not treat them as unreviewed.
-ignoredBuiltDependencies:
-  - "@stellar/stellar-sdk"
-  - blake-hash
-  - bufferutil
-  - tiny-secp256k1
-  - usb
-  - utf-8-validate
+# Build-script approval. pnpm 11 reads `allowBuilds` (pnpm 10 used
+# onlyBuiltDependencies / ignoredBuiltDependencies); the installed pnpm is 11.
 
 allowBuilds:
-  '@stellar/stellar-sdk': set this to true or false
-  bigint-buffer: set this to true or false
-  blake-hash: set this to true or false
-  bufferutil: set this to true or false
-  protobufjs: set this to true or false
-  sharp: set this to true or false
-  tiny-secp256k1: set this to true or false
-  unrs-resolver: set this to true or false
-  usb: set this to true or false
-  utf-8-validate: set this to true or false
+  # Built — this app needs them compiled.
+  sharp: true             # next/image
+  unrs-resolver: true     # eslint
+  bigint-buffer: true     # @solana/web3.js
+  protobufjs: true
+
+  # Not built. Hardware-wallet, EVM and native-socket transitives pulled in by
+  # @privy-io/react-auth's multi-chain support. This build is Solana-only and
+  # signs through Privy, so none of it is reachable — compiling them would add
+  # native toolchain requirements the deploy does not have. Listed explicitly so
+  # pnpm does not treat them as unreviewed.
+  '@reown/appkit': false      # WalletConnect UI; we use Privy's own modal
+  '@stellar/stellar-sdk': false
+  blake-hash: false
+  bufferutil: false
+  keccak: false               # EVM hashing; Solana-only build
+  tiny-secp256k1: false
+  usb: false
+  utf-8-validate: false

@@ -1,7 +1,10 @@
-import { PublicKey } from "@solana/web3.js";
-import { clusterApiUrl } from "@solana/web3.js";
+import { Connection, PublicKey, clusterApiUrl } from "@solana/web3.js";
 
 export type SolanaCluster = "devnet" | "testnet" | "mainnet-beta";
+
+/** Privy app id. Public by design — the app secret is server-side only and must
+ * never be exposed through a NEXT_PUBLIC_* variable. */
+export const PRIVY_APP_ID = process.env.NEXT_PUBLIC_PRIVY_APP_ID || "";
 
 /** Cluster the app talks to. Devnet for the hackathon build. */
 export const SOLANA_CLUSTER = (process.env.NEXT_PUBLIC_SOLANA_CLUSTER ||
@@ -13,6 +16,20 @@ export const SOLANA_CLUSTER = (process.env.NEXT_PUBLIC_SOLANA_CLUSTER ||
  */
 export const SOLANA_RPC_ENDPOINT =
   process.env.NEXT_PUBLIC_SOLANA_RPC || clusterApiUrl(SOLANA_CLUSTER);
+
+/** CAIP-2 chain id Privy uses to pick which cluster to broadcast to. */
+export const SOLANA_CAIP2 = `solana:${SOLANA_CLUSTER}` as
+  | "solana:devnet"
+  | "solana:testnet"
+  | "solana:mainnet";
+
+/** Shared RPC connection. One per app: the wallet-adapter ConnectionProvider that
+ * used to own this is gone now that auth runs through Privy. */
+let _conn: Connection | null = null;
+export function getConnection(): Connection {
+  if (!_conn) _conn = new Connection(SOLANA_RPC_ENDPOINT, "confirmed");
+  return _conn;
+}
 
 /** SPL Memo program — the anchor writes the reasoning-trace hash through this. */
 export const MEMO_PROGRAM_ID = new PublicKey(

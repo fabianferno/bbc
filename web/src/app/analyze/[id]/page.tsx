@@ -89,7 +89,7 @@ const PHASE_COPY: Record<Phase, string> = {
 export default function AnalyzePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const marketId = decodeURIComponent(id);
-  const { state, start, running } = useAnalyzeStream(marketId);
+  const { state, start, running, hydrate } = useAnalyzeStream(marketId);
   const gate = useRequireAuth();
   const [seedAvailable, setSeedAvailable] = useState(false);
   const [premarket, setPremarket] = useState<Market | null>(null);
@@ -101,9 +101,32 @@ export default function AnalyzePage({ params }: { params: Promise<{ id: string }
     }).catch(() => {});
   }, [marketId]);
 
+  // Show what the desk already worked out for this market. Without this a market
+  // the agent has reasoned about looks identical to one it has never seen.
+  // null = never analysed, which is the genuine empty state.
+  useEffect(() => {
+    let cancelled = false;
+    api.latestForMarket(marketId)
+      .then((r) => { if (r && !cancelled) hydrate(r); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [marketId, hydrate]);
+
   const market = state.market ?? premarket;
   const rank = phaseRank(state.phase);
   const started = state.phase !== "idle";
+  // Something is on the board — either a live run or a restored prior decision.
+  const hasContent = started || state.hydrated;
+
+  /** Which segments a restored decision actually has output for. */
+  const restored: Record<string, boolean> = {
+    search: state.evidence.length > 0,
+    onto: state.ontology != null,
+    graph: state.nodes.length > 0,
+    reason: state.decision != null,
+    settle: state.settled != null,
+    anchor: state.anchored != null,
+  };
 
   const statusTone = useMemo(() => {
     if (state.phase === "error") return "down" as const;
@@ -115,7 +138,9 @@ export default function AnalyzePage({ params }: { params: Promise<{ id: string }
     ? `Feed dropped — ${state.error}`
     : started
       ? PHASE_COPY[state.phase]
-      : `${market?.venue ?? "Market"} · ${market?.category ?? "uncategorised"} — put it on air to see the desk work it`;
+      : state.hydrated
+        ? "From the last time this market was on air — put it back on air to run it again"
+        : `${market?.venue ?? "Market"} · ${market?.category ?? "uncategorised"} — put it on air to see the desk work it`;
 
   useOnAir({
     headline: market?.question ?? marketId,
@@ -199,7 +224,7 @@ export default function AnalyzePage({ params }: { params: Promise<{ id: string }
                 ) : (
                   <Radio className="size-3.5" strokeWidth={2.5} aria-hidden />
                 )}
-                {running ? "On air" : started ? "Run it again" : "Put this market on air"}
+                {running ? "On air" : hasContent ? "Run it again" : "Put this market on air"}
               </Button>
             </div>
           </div>
@@ -217,7 +242,11 @@ export default function AnalyzePage({ params }: { params: Promise<{ id: string }
               <ol className="divide-y divide-rule">
                 {SEGMENTS.map((seg, i) => {
                   const minRank = Math.min(...seg.phases.map(phaseRank));
-                  const done = rank > Math.max(...seg.phases.map(phaseRank));
+                  // A hydrated board has no live phase to compare ranks against, so
+                  // read each segment off the data actually restored for it.
+                  const done =
+                    rank > Math.max(...seg.phases.map(phaseRank)) ||
+                    (state.hydrated && restored[seg.key] === true);
                   const active = seg.phases.includes(state.phase);
                   const pending = !active && !done;
                   return (
@@ -290,7 +319,14 @@ export default function AnalyzePage({ params }: { params: Promise<{ id: string }
           </div>
 
           {/* ── the studio wall ─────────────────────────────────────── */}
-          <div className="monitor relative min-h-[560px] overflow-hidden">
+          {/* Grid items stretch to the tallest column, and the left column runs
+              long (rundown + ontology + the full wire copy). Left alone the graph
+              grew past 2000px — mostly empty space. Pin it to the viewport
+              instead so it stays on screen while the evidence list scrolls under
+              it: 57px header + 157px lower third = 214px of fixed chrome. */}
+          <div
+            className="monitor relative min-h-[560px] overflow-hidden lg:sticky lg:top-[73px] lg:h-[calc(100vh-15rem)] lg:max-h-[760px] lg:min-h-[420px] lg:self-start"
+          >
             <div className="chyron absolute left-4 top-3 z-10 flex items-center gap-2 text-faint">
               <span>Knowledge graph</span>
               <span aria-hidden>·</span>
@@ -354,7 +390,7 @@ export default function AnalyzePage({ params }: { params: Promise<{ id: string }
           </section>
         )}
 
-        {!started && (
+        {!hasContent && (
           <section className="monitor mt-5 px-6 py-10 text-center">
             <p className="headline text-2xl text-white">This market is not on air yet</p>
             <p className="mx-auto mt-2.5 max-w-[58ch] text-[15px] leading-relaxed text-dim">

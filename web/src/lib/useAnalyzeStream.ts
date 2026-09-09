@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { api } from "./api";
+import { api, type DecisionResp } from "./api";
 import { useAuth } from "./auth";
 import { useDemoMode } from "./demo-mode";
 import { useOnchainExecutor } from "./useOnchainExecutor";
@@ -43,6 +43,8 @@ export type StreamState = {
   settled: OnchainTx | null;
   anchored: OnchainTx | null;
   error: string | null;
+  /** Populated from a stored prior decision rather than a live run. */
+  hydrated: boolean;
 };
 
 const EMPTY: StreamState = {
@@ -58,6 +60,7 @@ const EMPTY: StreamState = {
   settled: null,
   anchored: null,
   error: null,
+  hydrated: false,
 };
 
 export function useAnalyzeStream(marketId: string) {
@@ -71,6 +74,69 @@ export function useAnalyzeStream(marketId: string) {
     esRef.current?.close();
     esRef.current = null;
     setState(EMPTY);
+  }, []);
+
+  /**
+   * Seed the board from a stored decision. `phase` deliberately stays "idle": this
+   * is prior work, not a live run, so the "put it on air" call to action remains and
+   * `running` stays false. A live start() clears it.
+   */
+  const hydrate = useCallback((resp: DecisionResp) => {
+    setState((s) => {
+      if (s.phase !== "idle" || s.hydrated) return s;   // never clobber a live run
+      const g = resp.graph;
+      const rj = (resp.decision.response_json ?? {}) as Record<string, unknown>;
+      const used = (resp.decision.search_used ?? []) as {
+        url?: string; title?: string; published?: string | null;
+      }[];
+      const price = resp.market?.last_price_yes ?? null;
+      const txOf = (kind: string) => {
+        const a = (resp.anchors ?? []).find((x) => x.kind === kind);
+        return a
+          ? {
+              tx_hash: a.tx_hash,
+              explorer_url: a.explorer_url ?? "",
+              mocked: Boolean(a.mocked),
+              kind: a.kind,
+              trace_hash: a.trace_hash ?? undefined,
+              usdc_amount: a.usdc_amount ?? undefined,
+            }
+          : null;
+      };
+      const pYes = Number(resp.decision.p_yes ?? rj.p_yes ?? 0);
+      return {
+        ...s,
+        hydrated: true,
+        ontology: g?.ontology ?? null,
+        // Stored rows key nodes by `node_key`; edges reference the same key, so the
+        // canvas needs that as `id`/`source`/`target`, not the numeric row id.
+        nodes: (g?.nodes ?? []).map((n) => ({
+          ...n,
+          id: (n as unknown as { node_key: string }).node_key,
+        })),
+        edges: (g?.edges ?? []).map((e) => {
+          const r = e as unknown as { source_key: string; target_key: string };
+          return { ...e, source: r.source_key, target: r.target_key };
+        }),
+        searchCount: used.length || null,
+        evidence: used.map((h) => ({
+          url: h.url ?? "",
+          title: h.title ?? "",
+          published_date: h.published ?? null,
+        })),
+        anchored: txOf("anchor"),
+        settled: txOf("settle"),
+        decision: {
+          decision_id: Number(resp.decision.id ?? 0),
+          p_yes: pYes,
+          market_price: price ?? 0,
+          confidence: Number(resp.decision.confidence ?? rj.confidence ?? 0),
+          edge: Number(rj.edge_vs_market ?? (price == null ? 0 : pYes - price)),
+          action: String(resp.decision.action ?? rj.recommended_action ?? "skip"),
+          rationale: String(rj.rationale ?? ""),
+        },
+      };
+    });
   }, []);
 
   const start = useCallback(
@@ -179,5 +245,5 @@ export function useAnalyzeStream(marketId: string) {
   const running =
     state.phase !== "idle" && state.phase !== "done" && state.phase !== "error";
 
-  return { state, start, reset, running };
+  return { state, start, reset, running, hydrate };
 }

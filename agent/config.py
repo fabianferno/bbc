@@ -68,8 +68,9 @@ class Settings(BaseSettings):
     web_origin: str = "http://localhost:3000"
 
     # ---- search ----
-    tavily_api_key: str | None = None
-    tavily_max_results: int = 8
+    search_provider: str = "exa"
+    exa_api_key: str | None = None
+    search_max_results: int = 8
 
     # ---- manifold ----
     manifold_api_key: str | None = None

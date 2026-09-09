@@ -6,9 +6,11 @@ liquidity recheck happens just before order placement, not here.
 
 Filter rules:
   - category in agent_categories (or 'all').
-  - 24h volume >= MIN_VOLUME_24H ($5,000 default).
+  - 24h volume >= the venue's floor (MIN_VOLUME_24H, $5,000, on Polymarket;
+    MIN_VOLUME_24H_MANIFOLD, 100 mana, on Manifold).
   - book_depth_5c >= MIN_DEPTH_5C ($500 default) — checked when known.
-  - time to resolution within [3d, 45d].
+  - time to resolution within [3d, the venue's max] — 45d on Polymarket,
+    180d on Manifold.
   - current YES price in [0.08, 0.92].
   - not on the blocklist.
 """
@@ -22,10 +24,19 @@ from typing import Any
 from agent.config import settings
 
 MIN_VOLUME_24H = 5_000.0
+# Manifold trades in play-money mana, roughly two orders of magnitude below
+# Polymarket USD volume. Measured over 572 open markets in the configured
+# topics: only 1 clears $5k/24h, while 26 clear 100 mana. Applying the USD
+# threshold to mana rejects essentially the whole venue.
+MIN_VOLUME_24H_MANIFOLD = 100.0
 MIN_DEPTH_5C = 500.0
 PRICE_MIN, PRICE_MAX = 0.08, 0.92
 TIME_TO_RES_MIN = timedelta(days=3)
 TIME_TO_RES_MAX = timedelta(days=45)
+# Manifold's liquid inventory sits further out than Polymarket's: measured over
+# the configured topics, zero open Manifold markets resolve within 45 days,
+# while 14 resolve within 180. See prd.md §5.3.
+TIME_TO_RES_MAX_MANIFOLD = timedelta(days=180)
 
 
 @dataclass(slots=True)
@@ -47,7 +58,16 @@ def category_ok(market: dict[str, Any]) -> FilterResult:
     return FilterResult(False, f"category_not_allowed:{cat}")
 
 
-def volume_ok(market: dict[str, Any], *, min_volume: float = MIN_VOLUME_24H) -> FilterResult:
+def min_volume_for(market: dict[str, Any]) -> float:
+    """Volume floor for a market's venue — mana and USD are not comparable."""
+    if (market.get("venue") or "").lower() == "manifold":
+        return MIN_VOLUME_24H_MANIFOLD
+    return MIN_VOLUME_24H
+
+
+def volume_ok(market: dict[str, Any], *, min_volume: float | None = None) -> FilterResult:
+    if min_volume is None:
+        min_volume = min_volume_for(market)
     v = market.get("volume_24h")
     if v is None:
         return FilterResult(False, "missing_volume")
@@ -66,6 +86,13 @@ def depth_ok(market: dict[str, Any], *, min_depth: float = MIN_DEPTH_5C) -> Filt
     return FilterResult(True)
 
 
+def max_time_to_resolution_for(market: dict[str, Any]) -> timedelta:
+    """Resolution-horizon ceiling for a market's venue."""
+    if (market.get("venue") or "").lower() == "manifold":
+        return TIME_TO_RES_MAX_MANIFOLD
+    return TIME_TO_RES_MAX
+
+
 def time_to_resolution_ok(market: dict[str, Any], *, now: datetime | None = None) -> FilterResult:
     end = market.get("end_date")
     if not end:
@@ -78,8 +105,9 @@ def time_to_resolution_ok(market: dict[str, Any], *, now: datetime | None = None
     delta = end_dt - now
     if delta < TIME_TO_RES_MIN:
         return FilterResult(False, f"too_soon:{delta.days}d")
-    if delta > TIME_TO_RES_MAX:
-        return FilterResult(False, f"too_far:{delta.days}d")
+    max_delta = max_time_to_resolution_for(market)
+    if delta > max_delta:
+        return FilterResult(False, f"too_far:{delta.days}d>{max_delta.days}d")
     return FilterResult(True)
 
 

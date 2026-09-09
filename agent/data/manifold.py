@@ -14,9 +14,10 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 from agent.config import settings
+from agent.http_retry import retry_transient
 from agent.logging import get_logger
 
 log = get_logger(__name__)
@@ -98,13 +99,20 @@ class ManifoldClient:
 
     @retry(
         reraise=True,
-        retry=retry_if_exception_type((httpx.HTTPError,)),
+        retry=retry_transient,
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=1, max=10),
     )
     def _req(self, method: str, path: str, **kw: Any) -> Any:
         r = self._client.request(method, f"{self.base}{path}", **kw)
-        r.raise_for_status()
+        if r.is_error:
+            # Manifold returns the actionable reason in the body ("insufficient
+            # balance", "amount must be finite", closed market). raise_for_status()
+            # alone reports only "400 Bad Request", which is undebuggable from logs.
+            detail = (r.text or "")[:400].replace("\n", " ")
+            raise httpx.HTTPStatusError(
+                f"{r.status_code} {method} {path}: {detail}", request=r.request, response=r,
+            )
         if r.status_code == 204:
             return None
         return r.json()

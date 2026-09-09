@@ -251,6 +251,20 @@ def decision(decision_id: int) -> dict[str, Any]:
             if market else None}
 
 
+@app.get("/api/markets/{market_id:path}/latest")
+def latest_for_market(market_id: str) -> dict[str, Any]:
+    """Most recent graph-bearing decision for a market.
+
+    Lets the analyze page show what the desk already worked out for this market
+    instead of an empty board, without re-running the pipeline.
+    """
+    with db.connect() as conn:
+        did = db.latest_graph_decision_id(conn, market_id)
+        if did is None:
+            raise HTTPException(404, f"no prior decision for {market_id}")
+    return decision(did)
+
+
 @app.get("/api/graph/{decision_id}")
 def graph(decision_id: int) -> dict[str, Any]:
     with db.connect() as conn:
