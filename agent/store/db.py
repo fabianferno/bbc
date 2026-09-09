@@ -320,10 +320,12 @@ def close_position(
             }},
         )
     if pos.get("venue") != "simulated":
-        from agent.treasury import ledger
+        from agent.treasury import flywheel, ledger
         ledger.record(
             "settlement", float(notional_out), position_id=pos_id, leg=pos.get("leg") or "slow",
         )
+        if not is_partial and pnl > 0:
+            flywheel.on_settlement(pos_id, pnl)
 
 
 def open_positions(conn: Database) -> list[dict[str, Any]]:

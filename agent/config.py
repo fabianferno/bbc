@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     agent_max_positions: int = 8
     agent_daily_loss_cap: float = 0.20
     agent_treasury_seed: float = 10000.0   # notional USD book (paper mode); see PRODUCT.md
+    ansem_price_url: str = (
+        "https://api.dexscreener.com/latest/dex/tokens/"  # + $ANSEM mint, set via env
+    )
+    ansem_token_mint: str | None = None
 
     # ---- bedrock ----
     # Defaults target Amazon Nova (cheap) rather than Claude — this is a POC and Nova Lite
