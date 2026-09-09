@@ -18,8 +18,9 @@ import { AuthControls } from "@/components/auth-controls";
 /** `short` is what fits on a phone; `label` is the programme's real name. */
 const PROGRAMMES = [
   { href: "/", label: "On air", short: "On air" },
-  { href: "/auto", label: "The night desk", short: "Desk" },
+  { href: "/auto", label: "The night desk", short: "Night desk" },
   { href: "/portfolio", label: "The book", short: "Book" },
+  { href: "/desk", label: "The Desk", short: "The Desk" },
 ];
 
 /** How each agent phase should be described on air. Paper is never "live". */

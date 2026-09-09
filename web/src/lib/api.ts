@@ -42,6 +42,10 @@ export const api = {
     const qs = streamQuery({ ...opts, n });
     return `${API_BASE}/api/auto${qs ? `?${qs}` : ""}`;
   },
+  treasury: () => getJSON<TreasuryResp>("/api/treasury"),
+  flywheel: () => getJSON<FlywheelResp>("/api/flywheel"),
+  settledPositions: (limit = 100) =>
+    getJSON<SettledPositionsResp>(`/api/positions/settled?limit=${limit}`),
   // Persist a client-signed (personal-mode) on-chain txn so it shows in the ledger.
   recordAnchor: (body: AnchorRecord) =>
     fetch(`${API_BASE}/api/anchors/record`, {
@@ -137,6 +141,109 @@ export type Position = {
   status: string;
   entry_decision_id: number | null;
   opened_at: string;
+  /** barbell sleeve this position was sized under — "fast" or "slow". */
+  leg?: "fast" | "slow" | null;
+};
+
+// ── treasury / flywheel / settled — the transparency dashboard's payloads ──
+
+export type BreakerState = {
+  name: string;
+  tripped: boolean;
+  reason: string | null;
+  expires_at: string | null;
+};
+
+export type TreasuryResp = {
+  currency: string;
+  seed: number;
+  balance: number;
+  high_water_mark: number;
+  drawdown: number;
+  updated_at: string | null;
+  mode: string;
+  simulated: boolean;
+  notional: boolean;
+  deployed: { fast: number; slow: number; total: number };
+  /** live from the risk engine — never hardcode these limits in a component. */
+  risk_params: Record<string, number>;
+  breakers: BreakerState[];
+  /** as of the last agent-loop evaluation, not real-time. */
+  halted: boolean;
+  events: TreasuryEvent[];
+};
+
+export type TreasuryEvent = {
+  id: number;
+  kind: string;
+  amount: number;
+  balance_after: number;
+  position_id: number | null;
+  leg: string | null;
+  mode: string;
+  created_at: string;
+};
+
+export type FlywheelEvent = {
+  id: number;
+  position_id: number;
+  realized_pnl: number;
+  treasury_share: number;
+  ansem_share: number;
+  reserve_share: number;
+  ansem_price_usd: number | null;
+  ansem_qty: number | null;
+  price_source: string;
+  mode: string;
+  created_at: string;
+};
+
+export type FlywheelResp = {
+  // `/api/flywheel` spreads `flywheel.totals()` (which has its own scalar
+  // `events` count) and then overwrites `events` with the actual event log —
+  // so the field that survives on the wire is the array, not the count.
+  events: FlywheelEvent[];
+  realized_profit_usd: number;
+  treasury_usd: number;
+  ansem_usd: number;
+  ansem_qty: number;
+  reserve_usd: number;
+  mode: string;
+  simulated: boolean;
+  /** render this verbatim, visible without interaction — never behind a tooltip. */
+  notice: string;
+};
+
+export type LegPerformance = {
+  settled: number;
+  wins: number;
+  win_rate: number | null;
+  realized_pnl_notional: number;
+};
+
+export type SettledPosition = {
+  id: number;
+  market_id: string;
+  question: string | null;
+  venue: string | null;
+  leg: "fast" | "slow" | null;
+  side: string;
+  shares: number;
+  entry_price: number;
+  exit_price: number | null;
+  notional_in: number;
+  notional_out: number | null;
+  pnl: number | null;
+  status: string;
+  closed_at: string | null;
+};
+
+export type SettledPositionsResp = {
+  mode: string;
+  simulated: boolean;
+  notional: boolean;
+  positions: SettledPosition[];
+  leg_performance: { fast: LegPerformance; slow: LegPerformance };
 };
 export type MetricsResp = {
   metrics: MetricRow[];
