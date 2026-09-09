@@ -21,6 +21,14 @@ dependencies = [
     "uvicorn[standard]>=0.27",
     "sse-starlette>=2.0",
     "pymongo>=4.6",
+    # Pinned narrowly: supabase's `realtime` sub-dependency needs websockets>=13
+    # from 2.6.0 onward (imports `websockets.asyncio`), which conflicts with
+    # `solana`'s `websockets<12` pin. 2.16.x is the newest supabase release that
+    # still allows a realtime version (2.5.0) built against websockets<12; the
+    # DAO never uses realtime subscriptions, only PostgREST table operations.
+    "supabase>=2.16,<2.17",
+    "realtime==2.5.0",
+    "websockets>=11,<12",
 ]
 
 [project.optional-dependencies]

@@ -93,6 +93,9 @@ class Settings(BaseSettings):
     # ---- storage / obs ----
     mongo_db_url: str = ""
     mongo_db_name: str = "openmind"
+    supabase_url: str | None = None
+    supabase_publishable_key: str | None = None
+    supabase_service_role_key: str | None = None  # server-only; never NEXT_PUBLIC_*
     agent_log_path: Path = Path("logs/agent.jsonl")
     agent_log_level: str = "INFO"
     alert_webhook_url: str | None = None
