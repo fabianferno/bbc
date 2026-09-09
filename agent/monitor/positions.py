@@ -6,9 +6,11 @@ from datetime import UTC, datetime
 from typing import Any
 
 from agent.config import settings
+from agent.execution import safety
 from agent.logging import get_logger
 from agent.store import db
 from agent.strategy import exit as exit_mod
+from agent.treasury import legs
 
 log = get_logger(__name__)
 
@@ -90,10 +92,27 @@ def reevaluate_all(executor: Any) -> int:
                 cap = settings.agent_per_market_cap - pos["notional_in"]
                 if cap > 0:
                     extra_usd = min(extra_usd, cap)
+                    # A scale-in is a fresh entry and must clear the same published risk
+                    # limits as one — position cap, leg allocation, category concentration.
+                    # It also inherits the ORIGINAL position's leg: a leg is fixed at open
+                    # and never reclassified, and defaulting to "slow" here would blend
+                    # fast-leg exposure into the separately-reported slow-leg win rate.
+                    leg = pos.get("leg") or legs.SLOW
+                    check = safety.entry_allowed(
+                        usd_size=extra_usd, leg=leg,
+                        category=(market.get("category") or "uncategorised"),
+                    )
+                    if check.tripped:
+                        # Reject this one scale-in; never halt the monitor loop.
+                        log.info(
+                            "monitor.scale_in_blocked", pos_id=pos["id"],
+                            breaker=check.name, reason=check.reason,
+                        )
+                        continue
                     executor.place_entry(
                         market=market, side=pos["side"], usd_size=extra_usd,
                         target_price=current_yes if pos["side"] == "YES" else (1 - current_yes),
-                        decision_id=plan.decision_id,
+                        decision_id=plan.decision_id, leg=leg,
                     )
                     actioned += 1
             except Exception as e:
