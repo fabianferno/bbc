@@ -30,8 +30,11 @@ def cli() -> None:
 @cli.command("init-db")
 def init_db() -> None:
     from agent.store import db
+    from agent.treasury import ledger
     db.init_db()
+    ledger.seed_if_empty()
     click.echo("db: initialised")
+    click.echo(f"treasury: {ledger.balance():.2f} notional USD")
 
 
 @cli.command("cycle")

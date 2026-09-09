@@ -56,6 +56,10 @@ def init_db() -> None:
     d["graph_nodes"].create_index([("decision_id", 1)])
     d["graph_edges"].create_index([("decision_id", 1)])
     d["onchain_anchors"].create_index([("decision_id", 1)])
+    d["treasury_events"].create_index([("created_at", 1)])
+    d["treasury_events"].create_index([("position_id", 1)])
+    d["flywheel_events"].create_index([("created_at", 1)])
+    d["flywheel_events"].create_index([("position_id", 1)], unique=True)
 
 
 def next_id(conn: Database, name: str) -> int:
