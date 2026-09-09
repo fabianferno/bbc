@@ -24,6 +24,7 @@ import mongomock  # noqa: E402
 import pytest  # noqa: E402
 
 from agent.store import db  # noqa: E402
+from tests.fakes.postgrest import FakePostgrest  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -43,3 +44,17 @@ def fresh_db(monkeypatch):
     monkeypatch.setattr(db, "_client", client)
     db.init_db()
     yield
+
+
+@pytest.fixture
+def fake_postgrest():
+    """A fresh in-memory PostgREST fake (tests/fakes/postgrest.py).
+
+    Not yet wired into `agent.store.db` — the DAO still speaks pymongo (tasks
+    4-6 will port it to `supabase-py` and swap the call sites over). This
+    fixture exists so tests that target the fake directly, or a Task 4+ DAO,
+    get per-test isolation matching `_mongo`'s. It is intentionally NOT
+    autouse: making it autouse now would not affect anything (nothing reads
+    it yet) but would suggest a swap that hasn't happened.
+    """
+    return FakePostgrest()
