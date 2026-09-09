@@ -331,7 +331,7 @@ def metrics() -> dict[str, Any]:
 def treasury() -> dict[str, Any]:
     """Notional treasury state. NOT realized cash — paper mode, notional USD book."""
     snap = ledger.snapshot()
-    ok, checks = safety.all_clear()
+    breakers = safety.breaker_snapshot()
     return {
         **snap,
         "mode": "paper",
@@ -343,10 +343,8 @@ def treasury() -> dict[str, Any]:
             "total": ledger.deployed(),
         },
         "risk_params": safety.RISK_PARAMS,
-        "breakers": [
-            {"name": c.name, "tripped": c.tripped, "reason": c.reason} for c in checks
-        ],
-        "halted": not ok,
+        "breakers": breakers,
+        "halted": any(b["tripped"] for b in breakers),
         "events": ledger.events(limit=50),
     }
 

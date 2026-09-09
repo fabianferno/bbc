@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from agent.config import settings
 from agent.logging import get_logger
@@ -214,6 +215,26 @@ def record_api_success() -> None:
 
 def check_manual() -> BreakerCheck:
     return _check_persisted("manual")
+
+
+def breaker_snapshot() -> list[dict[str, Any]]:
+    """Read persisted breaker state WITHOUT evaluating or mutating anything.
+
+    `all_clear()` is the enforcement path: its checks persist trips and clear
+    expired ones as a side effect. Read-only consumers (the public dashboard)
+    must never call it — a GET must not be able to trip the kill-switch.
+    """
+    with db.connect() as conn:
+        rows = db.all_breakers(conn)
+    return [
+        {
+            "name": r.get("name"),
+            "tripped": bool(r.get("tripped")),
+            "reason": r.get("reason"),
+            "expires_at": r.get("expires_at"),
+        }
+        for r in rows
+    ]
 
 
 def all_clear() -> tuple[bool, list[BreakerCheck]]:

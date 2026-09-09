@@ -19,6 +19,46 @@ def test_treasury_endpoint_reports_notional_and_risk_params():
     assert isinstance(body["breakers"], list)
 
 
+def test_treasury_endpoint_does_not_trip_the_drawdown_kill_switch():
+    """GET /api/treasury must observe breaker state, never evaluate/trip it.
+
+    Drive balance into a >20% drawdown (which `safety.all_clear()` WOULD persist as
+    a tripped drawdown breaker) and confirm the read-only endpoint leaves it alone.
+    """
+    ledger.seed_if_empty()
+    with db.connect() as conn:
+        conn["breaker_state"].delete_many({})
+        conn["treasury"].update_one(
+            {"_id": ledger.TREASURY_DOC_ID},
+            {"$set": {"balance": 100.0, "high_water_mark": 100.0}},
+            upsert=True,
+        )
+        conn["treasury"].update_one(
+            {"_id": ledger.TREASURY_DOC_ID},
+            {"$set": {"balance": 50.0}},
+        )
+    assert ledger.drawdown() >= 0.20
+
+    client.get("/api/treasury")
+
+    with db.connect() as conn:
+        state = db.breaker_status(conn, "drawdown")
+    assert state is None or not state["tripped"]
+
+
+def test_treasury_endpoint_is_idempotent_on_breaker_state():
+    ledger.seed_if_empty()
+    with db.connect() as conn:
+        before = db.all_breakers(conn)
+
+    client.get("/api/treasury")
+    client.get("/api/treasury")
+
+    with db.connect() as conn:
+        after = db.all_breakers(conn)
+    assert before == after
+
+
 def test_flywheel_endpoint_carries_the_simulation_notice():
     body = client.get("/api/flywheel").json()
     assert body["simulated"] is True
