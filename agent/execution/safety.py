@@ -12,12 +12,32 @@ from datetime import UTC, datetime, timedelta
 from agent.config import settings
 from agent.logging import get_logger
 from agent.store import db
+from agent.treasury import ledger, legs
 
 log = get_logger(__name__)
 
 API_FAILURE_THRESHOLD = 3
 API_FAILURE_COOLDOWN = timedelta(hours=1)
 DAILY_LOSS_COOLDOWN = timedelta(hours=24)
+
+# Published risk parameters. The dashboard renders these directly, so a number
+# pinned in the UI can never drift from the limit the code enforces.
+MAX_POSITION_FRACTION = 0.05        # of treasury, per position
+FAST_LEG_DEPLOYMENT_CAP = 0.25      # of treasury, simultaneously at risk on the fast leg
+SLOW_LEG_CAP = 0.20                 # of treasury, total slow-leg exposure
+CATEGORY_CONCENTRATION_CAP = 0.40   # of total open exposure, per category
+DRAWDOWN_KILL_SWITCH = 0.20         # below the high-water mark
+
+RISK_PARAMS: dict[str, float] = {
+    "max_position_fraction": MAX_POSITION_FRACTION,
+    "fast_leg_deployment_cap": FAST_LEG_DEPLOYMENT_CAP,
+    "slow_leg_cap": SLOW_LEG_CAP,
+    "category_concentration_cap": CATEGORY_CONCENTRATION_CAP,
+    "drawdown_kill_switch": DRAWDOWN_KILL_SWITCH,
+    "fast_sleeve": legs.FAST_SLEEVE,
+    "slow_sleeve": legs.SLOW_SLEEVE,
+    "fast_leg_max_hours": float(legs.FAST_LEG_MAX_HOURS),
+}
 
 
 @dataclass(slots=True)
@@ -68,6 +88,85 @@ def check_daily_loss() -> BreakerCheck:
     return BreakerCheck("daily_loss", False)
 
 
+def check_drawdown() -> BreakerCheck:
+    """Kill-switch: halt all new positions at DRAWDOWN_KILL_SWITCH below the HWM.
+
+    Deliberately persisted with NO expiry, unlike `daily_loss`'s 24-hour cooldown.
+    Clearing it requires an explicit `reset-breaker` plus a published reassessment.
+    That absence of auto-expiry is what makes this a kill-switch and not a pause.
+    """
+    persisted = _check_persisted("drawdown")
+    if persisted.tripped:
+        return persisted
+    dd = ledger.drawdown()
+    if dd >= DRAWDOWN_KILL_SWITCH:
+        with db.connect() as conn:
+            db.set_breaker(
+                conn, "drawdown", tripped=True,
+                reason=f"drawdown={dd:.4f} >= {DRAWDOWN_KILL_SWITCH}",
+            )
+        log.error("breaker.drawdown.tripped", drawdown=dd)
+        return BreakerCheck("drawdown", True, f"drawdown:{dd:.4f}")
+    return BreakerCheck("drawdown", False)
+
+
+def _open_exposure_by_category() -> tuple[dict[str, float], float]:
+    """(exposure per category, total exposure) across open non-backtest positions."""
+    by_cat: dict[str, float] = {}
+    total = 0.0
+    with db.connect() as conn:
+        open_rows = list(conn["positions"].find({"status": "open", "venue": {"$ne": "simulated"}}))
+        ids = list({r["market_id"] for r in open_rows})
+        markets = {m["_id"]: m for m in conn["markets"].find({"_id": {"$in": ids}})}
+    for r in open_rows:
+        cat = ((markets.get(r["market_id"]) or {}).get("category") or "uncategorised").lower()
+        amt = float(r.get("notional_in") or 0.0)
+        by_cat[cat] = by_cat.get(cat, 0.0) + amt
+        total += amt
+    return by_cat, total
+
+
+def entry_allowed(*, usd_size: float, leg: str, category: str) -> BreakerCheck:
+    """Per-candidate risk checks.
+
+    These REJECT ONE CANDIDATE rather than halting the agent, so they are not part
+    of `all_clear()`. Returns a tripped BreakerCheck naming the limit that blocked
+    the entry, or an untripped one named `entry_allowed`.
+    """
+    treasury = ledger.balance()
+    if treasury <= 0:
+        return BreakerCheck("entry_allowed", False)
+
+    if usd_size > treasury * MAX_POSITION_FRACTION:
+        return BreakerCheck(
+            "entry.position_cap", True,
+            f"size={usd_size:.2f} > {MAX_POSITION_FRACTION:.0%} of treasury {treasury:.2f}",
+        )
+
+    cap = FAST_LEG_DEPLOYMENT_CAP if leg == legs.FAST else SLOW_LEG_CAP
+    if ledger.deployed(leg) + usd_size > treasury * cap:
+        return BreakerCheck(
+            "entry.leg_allocation", True,
+            f"leg={leg} deployed+new > {cap:.0%} of treasury",
+        )
+
+    by_cat, total = _open_exposure_by_category()
+    cat = (category or "uncategorised").lower()
+    # Measure concentration against the TARGET deployed book, not merely the current
+    # one. A single position is always 100% of a one-position book, so a raw ratio
+    # would reject every opening trade. The denominator is therefore the larger of
+    # the book after this entry and the fast-leg deployment target, which lets the
+    # book be built up and starts biting once real exposure exists.
+    denominator = max(total + usd_size, treasury * FAST_LEG_DEPLOYMENT_CAP)
+    if denominator > 0 and (by_cat.get(cat, 0.0) + usd_size) / denominator > CATEGORY_CONCENTRATION_CAP:
+        return BreakerCheck(
+            "entry.category_concentration", True,
+            f"category={cat} > {CATEGORY_CONCENTRATION_CAP:.0%} of the target book",
+        )
+
+    return BreakerCheck("entry_allowed", False)
+
+
 def check_position_count() -> BreakerCheck:
     with db.connect() as conn:
         n = len(db.open_positions(conn))
@@ -113,6 +212,7 @@ def all_clear() -> tuple[bool, list[BreakerCheck]]:
     """Return (ok, list_of_checks). ok=True iff none are tripped."""
     checks = [
         check_daily_loss(),
+        check_drawdown(),
         check_position_count(),
         check_api_failures(),
         check_manual(),

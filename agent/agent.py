@@ -204,15 +204,26 @@ def run_cycle() -> dict[str, Any]:
         if plan.action != "enter":
             n_skipped += 1
             continue
-        # position-count breaker recheck (entries this cycle can trip it)
+        # position-count / drawdown breaker recheck (entries this cycle can trip them)
         ok2, _ = safety.all_clear()
         if not ok2:
             log.warning("cycle.aborting_entries_breaker_tripped")
             break
+        # per-candidate risk limits — reject this candidate, keep the cycle going
+        risk = safety.entry_allowed(
+            usd_size=plan.usd_size or 0.0,
+            leg=plan.leg or "slow",
+            category=(m.get("category") or "uncategorised"),
+        )
+        if risk.tripped:
+            log.info("cycle.entry_rejected", market_id=m["id"], breaker=risk.name, reason=risk.reason)
+            n_skipped += 1
+            continue
         try:
             exe.place_entry(
                 market=m, side=plan.side, usd_size=plan.usd_size,
                 target_price=plan.target_price, decision_id=plan.decision_id,
+                leg=plan.leg or "slow",
             )
             n_entered += 1
         except Exception as e:

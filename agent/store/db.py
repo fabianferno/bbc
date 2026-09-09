@@ -386,7 +386,7 @@ def set_breaker(conn: Database, name: str, *, tripped: bool, reason: str | None 
     conn["breaker_state"].update_one(
         {"_id": name},
         {"$set": {
-            "tripped": 1 if tripped else 0,
+            "tripped": bool(tripped),
             "tripped_at": _now() if tripped else None,
             "expires_at": expires_at,
             "reason": reason,
