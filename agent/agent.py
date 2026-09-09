@@ -28,6 +28,7 @@ from agent.monitor import alerts, positions
 from agent.store import db
 from agent.strategy import entry as entry_mod
 from agent.strategy import filters
+from agent.treasury import ledger
 
 log = get_logger(__name__)
 
@@ -144,6 +145,11 @@ def run_cycle() -> dict[str, Any]:
     """Run a single end-to-end cycle. Safe to call from cron."""
     started = datetime.now(UTC)
     log.info("cycle.start", mode=settings.agent_mode, at=started.isoformat())
+
+    # Self-seed: a DB created before the treasury existed would otherwise run with a
+    # balance of 0, silently falling back to agent_bankroll at every risk site while
+    # the dashboard renders an empty treasury. Idempotent.
+    ledger.seed_if_empty()
 
     ok, checks = safety.all_clear()
     tripped = [c for c in checks if c.tripped]

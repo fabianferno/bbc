@@ -65,14 +65,16 @@ def on_settlement(position_id: int, realized_pnl: float) -> dict[str, Any] | Non
 
     price, source = ansem_price_usd()
     ansem_usd = round(realized_pnl * ANSEM_SHARE, 6)
+    reserve_usd = round(realized_pnl * RESERVE_SHARE, 6)
     event = {
         "position_id": position_id,
         "realized_pnl": round(realized_pnl, 6),
         "treasury_share": round(realized_pnl * TREASURY_SHARE, 6),
         "ansem_share": ansem_usd,
-        "reserve_share": round(realized_pnl * RESERVE_SHARE, 6),
+        "reserve_share": reserve_usd,
         "ansem_price_usd": price,
-        "ansem_qty": round(ansem_usd / price, 6) if price else None,
+        # A negative price is truthy but would yield a negative quantity — guard it.
+        "ansem_qty": round(ansem_usd / price, 6) if price and price > 0 else None,
         "price_source": source,
         "mode": "paper",
         "created_at": datetime.now(UTC).isoformat(timespec="seconds"),
@@ -80,6 +82,14 @@ def on_settlement(position_id: int, realized_pnl: float) -> dict[str, Any] | Non
     with db.connect() as conn:
         eid = db.next_id(conn, "flywheel_events")
         conn["flywheel_events"].insert_one({"_id": eid, **event})
+    # Debit the money that LEAVES the book: the $ANSEM buy plus the reserve. The
+    # 50% treasury share is NOT credited here — `db.close_position` already credited
+    # the full proceeds via the `settlement` event, so crediting it again would
+    # double-count. Net effect: the treasury keeps 50% of the profit.
+    outflow = ansem_usd + reserve_usd
+    if outflow > 0:
+        from agent.treasury import ledger
+        ledger.record("flywheel_split", -outflow, position_id=position_id)
     log.info("flywheel.split", position_id=position_id, ansem_usd=ansem_usd, price=price)
     return {"id": eid, **event}
 
@@ -103,7 +113,7 @@ def totals() -> dict[str, Any]:
             ansem_qty += float(e.get("ansem_qty") or 0.0)
             reserve_usd += float(e.get("reserve_share") or 0.0)
     return {
-        "events": n,
+        "event_count": n,
         "realized_profit_usd": round(profit, 6),
         "treasury_usd": round(treasury_usd, 6),
         "ansem_usd": round(ansem_usd, 6),

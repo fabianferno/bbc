@@ -1,3 +1,6 @@
+import pytest
+
+from agent.store import db
 from agent.treasury import flywheel, ledger
 
 
@@ -106,3 +109,36 @@ def test_terminal_close_after_partials_fires_flywheel_once_with_true_total_pnl()
     matches = [e for e in flywheel.events(limit=100) if e["position_id"] == pid]
     assert len(matches) == 1
     assert matches[0]["realized_pnl"] == round(true_total_pnl, 6)
+
+
+def test_flywheel_debits_the_outflow_from_the_treasury():
+    """After a profitable settlement the treasury keeps only the 50% share.
+
+    `close_position` credits the FULL proceeds via the `settlement` event, so the
+    flywheel debits only what LEAVES the book (35% $ANSEM + 15% reserve).
+    """
+    ledger.seed_if_empty()
+    pre = ledger.balance()
+    with db.connect() as conn:
+        pid = db.open_position(conn, {
+            "market_id": "manifold:fw1", "venue": "manifold", "side": "YES",
+            "shares": 10.0, "entry_price": 0.5, "notional_in": 500.0, "leg": "fast",
+        })
+        db.close_position(
+            conn, pid, exit_price=0.7, notional_out=700.0,
+            exit_decision_id=None, venue_exit_order=None, p_yes_at_exit=0.7,
+        )
+    pnl = 200.0
+    assert ledger.balance() == pytest.approx(pre - 500.0 + 700.0 - 0.5 * pnl)
+    kinds = [e["kind"] for e in ledger.events(limit=50)]
+    assert "flywheel_split" in kinds
+    split = next(e for e in ledger.events(limit=50) if e["kind"] == "flywheel_split")
+    assert split["amount"] == pytest.approx(-0.5 * pnl)
+
+
+def test_negative_price_yields_no_ansem_quantity(monkeypatch):
+    ledger.seed_if_empty()
+    monkeypatch.setattr(flywheel, "ansem_price_usd", lambda: (-1.0, "bogus"))
+    ev = flywheel.on_settlement(position_id=99, realized_pnl=100.0)
+    assert ev is not None
+    assert ev["ansem_qty"] is None
