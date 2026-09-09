@@ -78,3 +78,77 @@ def test_leg_is_persisted_and_defaults_to_slow():
         })
         pos = conn["positions"].find_one({"_id": pid})
     assert pos["leg"] == "slow"
+
+
+def test_partial_close_leaves_position_open_and_credits_partial_proceeds():
+    ledger.seed_if_empty()
+    with db.connect() as conn:
+        pid = db.open_position(conn, {
+            "market_id": "manifold:p1", "venue": "manifold", "side": "YES",
+            "shares": 10.0, "entry_price": 0.5, "notional_in": 500.0, "leg": "fast",
+        })
+        bal_after_entry = ledger.balance()
+        db.close_position(
+            conn, pid, exit_price=0.7, notional_out=280.0,
+            exit_decision_id=None, venue_exit_order=None, p_yes_at_exit=0.7,
+            shares_closed=4.0,
+        )
+        pos = conn["positions"].find_one({"_id": pid})
+    assert pos["status"] == "open"
+    assert pos["shares"] == 6.0
+    assert pos["notional_in"] == 300.0
+    assert ledger.balance() == bal_after_entry + 280.0
+
+
+def test_two_partial_closes_match_single_full_close_balance():
+    ledger.seed_if_empty()
+    bal_before_a = ledger.balance()
+    with db.connect() as conn:
+        pid_a = db.open_position(conn, {
+            "market_id": "manifold:p2a", "venue": "manifold", "side": "YES",
+            "shares": 10.0, "entry_price": 0.5, "notional_in": 500.0, "leg": "fast",
+        })
+        db.close_position(
+            conn, pid_a, exit_price=0.7, notional_out=280.0,
+            exit_decision_id=None, venue_exit_order=None, p_yes_at_exit=0.7,
+            shares_closed=4.0,
+        )
+        db.close_position(
+            conn, pid_a, exit_price=0.7, notional_out=420.0,
+            exit_decision_id=None, venue_exit_order=None, p_yes_at_exit=0.7,
+            shares_closed=6.0,
+        )
+        partial_delta = ledger.balance() - bal_before_a
+        pos_a = conn["positions"].find_one({"_id": pid_a})
+
+    bal_before_b = ledger.balance()
+    with db.connect() as conn:
+        pid_b = db.open_position(conn, {
+            "market_id": "manifold:p2b", "venue": "manifold", "side": "YES",
+            "shares": 10.0, "entry_price": 0.5, "notional_in": 500.0, "leg": "fast",
+        })
+        db.close_position(
+            conn, pid_b, exit_price=0.7, notional_out=700.0,
+            exit_decision_id=None, venue_exit_order=None, p_yes_at_exit=0.7,
+        )
+        full_delta = ledger.balance() - bal_before_b
+
+    assert pos_a["status"] == "closed"
+    assert partial_delta == full_delta
+
+
+def test_full_close_still_marks_closed_and_sets_closed_at():
+    ledger.seed_if_empty()
+    with db.connect() as conn:
+        pid = db.open_position(conn, {
+            "market_id": "manifold:p3", "venue": "manifold", "side": "YES",
+            "shares": 10.0, "entry_price": 0.5, "notional_in": 500.0, "leg": "fast",
+        })
+        db.close_position(
+            conn, pid, exit_price=0.7, notional_out=700.0,
+            exit_decision_id=None, venue_exit_order=None, p_yes_at_exit=0.7,
+        )
+        pos = conn["positions"].find_one({"_id": pid})
+    assert pos["status"] == "closed"
+    assert pos["closed_at"] is not None
+    assert pos["pnl"] == 200.0

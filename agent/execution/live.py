@@ -143,6 +143,7 @@ class LiveExecutor:
                 venue_exit_order=venue_order_id,
                 p_yes_at_exit=fill_price if position["side"] == "YES" else (1 - fill_price),
                 fees=0.0,
+                shares_closed=shares,
             )
         log.info("live.exit.filled", pos_id=position["id"], price=fill_price, proceeds=proceeds)
         return {"fill_price": fill_price, "proceeds": proceeds, "venue_order_id": venue_order_id}

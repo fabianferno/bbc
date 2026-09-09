@@ -118,6 +118,7 @@ class ManifoldExecutor:
                 venue_exit_order=str(resp.get("id") or ""),
                 p_yes_at_exit=fill_price if side == "YES" else (1 - fill_price),
                 fees=0.0,
+                shares_closed=shares,
             )
         log.info("paper.exit.filled", market_id=market["id"], pos_id=position["id"],
                  fill=fill_price, proceeds=proceeds)
@@ -182,5 +183,6 @@ class SimulatedExecutor:
                 venue_exit_order=None,
                 p_yes_at_exit=fill_price if position["side"] == "YES" else (1 - fill_price),
                 fees=0.0,
+                shares_closed=shares,
             )
         return {"fill_price": fill_price, "proceeds": proceeds}

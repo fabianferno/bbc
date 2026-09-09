@@ -259,26 +259,54 @@ def close_position(
     venue_exit_order: str | None,
     p_yes_at_exit: float | None,
     fees: float = 0.0,
+    shares_closed: float | None = None,
 ) -> None:
     pos = conn["positions"].find_one({"_id": pos_id})
     if pos is None:
         return
-    new_fees = float(pos.get("fees") or 0.0) + fees
-    pnl = notional_out - float(pos["notional_in"]) - fees
-    conn["positions"].update_one(
-        {"_id": pos_id},
-        {"$set": {
-            "exit_price": exit_price,
-            "notional_out": notional_out,
-            "pnl": pnl,
-            "fees": new_fees,
-            "status": "closed",
-            "exit_decision_id": exit_decision_id,
-            "venue_exit_order": venue_exit_order,
-            "p_yes_at_exit": p_yes_at_exit,
-            "closed_at": _now(),
-        }},
-    )
+
+    is_partial = shares_closed is not None and shares_closed < float(pos["shares"]) - 1e-9
+
+    if is_partial:
+        assert shares_closed is not None
+        fraction = shares_closed / float(pos["shares"])
+        closed_notional_in = float(pos["notional_in"]) * fraction
+        slice_pnl = notional_out - closed_notional_in - fees
+        new_fees = float(pos.get("fees") or 0.0) + fees
+        new_pnl = float(pos.get("pnl") or 0.0) + slice_pnl
+        new_notional_out = float(pos.get("notional_out") or 0.0) + notional_out
+        conn["positions"].update_one(
+            {"_id": pos_id},
+            {"$set": {
+                "shares": float(pos["shares"]) - shares_closed,
+                "notional_in": float(pos["notional_in"]) - closed_notional_in,
+                "exit_price": exit_price,
+                "notional_out": new_notional_out,
+                "pnl": new_pnl,
+                "fees": new_fees,
+                "status": "open",
+                "exit_decision_id": exit_decision_id,
+                "venue_exit_order": venue_exit_order,
+                "p_yes_at_exit": p_yes_at_exit,
+            }},
+        )
+    else:
+        new_fees = float(pos.get("fees") or 0.0) + fees
+        pnl = notional_out - float(pos["notional_in"]) - fees
+        conn["positions"].update_one(
+            {"_id": pos_id},
+            {"$set": {
+                "exit_price": exit_price,
+                "notional_out": notional_out,
+                "pnl": pnl,
+                "fees": new_fees,
+                "status": "closed",
+                "exit_decision_id": exit_decision_id,
+                "venue_exit_order": venue_exit_order,
+                "p_yes_at_exit": p_yes_at_exit,
+                "closed_at": _now(),
+            }},
+        )
     if pos.get("venue") != "simulated":
         from agent.treasury import ledger
         ledger.record(
