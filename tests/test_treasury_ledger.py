@@ -49,11 +49,16 @@ def test_open_and_close_position_move_the_treasury():
             "shares": 10.0, "entry_price": 0.5, "notional_in": 500.0, "leg": "fast",
         })
         assert ledger.balance() == 9500.0
+        # equity is unchanged by deploying capital: cash 9500 + deployed 500
+        assert ledger.equity() == 10000.0
         db.close_position(
             conn, pid, exit_price=0.7, notional_out=700.0,
             exit_decision_id=None, venue_exit_order=None, p_yes_at_exit=0.7,
         )
-    assert ledger.balance() == 10200.0
+    # 9500 cash + 700 proceeds = 10200, minus the flywheel outflow (35% + 15% of
+    # the 200 profit = 100) that leaves the book for the $ANSEM buy and reserve.
+    # The treasury therefore keeps exactly 50% of the profit.
+    assert ledger.balance() == 10100.0
 
 
 def test_backtest_positions_do_not_touch_the_treasury():

@@ -76,9 +76,11 @@ def check_daily_loss() -> BreakerCheck:
         return persisted
     with db.connect() as conn:
         pnl = db.positions_today_pnl(conn)
-    # Denominate against the notional treasury (sizing.py draws position size from the
-    # same book), falling back to agent_bankroll only when the treasury is unseeded.
-    book = ledger.balance() or settings.agent_bankroll
+    # Denominate against the notional treasury EQUITY — cash plus notional deployed in
+    # open positions (sizing.py draws position size from the same book) — falling back
+    # to agent_bankroll only when the treasury is unseeded. Cash alone would shrink the
+    # loss cap merely because capital is at work.
+    book = ledger.equity() or settings.agent_bankroll
     threshold = -settings.agent_daily_loss_cap * book
     if pnl <= threshold:
         expires = (datetime.now(UTC) + DAILY_LOSS_COOLDOWN).isoformat()
@@ -93,7 +95,7 @@ def check_daily_loss() -> BreakerCheck:
 
 
 def check_drawdown() -> BreakerCheck:
-    """Kill-switch: halt all new positions at DRAWDOWN_KILL_SWITCH below the HWM.
+    """Kill-switch: halt all new positions at DRAWDOWN_KILL_SWITCH below the equity HWM.
 
     Deliberately persisted with NO expiry, unlike `daily_loss`'s 24-hour cooldown.
     Clearing it requires an explicit `reset-breaker` plus a published reassessment.
@@ -140,7 +142,7 @@ def entry_allowed(*, usd_size: float, leg: str, category: str) -> BreakerCheck:
     # Same fallback book as sizing.py and check_daily_loss, so all three risk call
     # sites agree on what "the book" means. With no book at all there is no
     # denominator, so no position can be justified — fail closed, not open.
-    book = ledger.balance() or settings.agent_bankroll
+    book = ledger.equity() or settings.agent_bankroll
     if book <= 0:
         return BreakerCheck(
             "entry.no_book", True, "treasury unseeded and no bankroll fallback",

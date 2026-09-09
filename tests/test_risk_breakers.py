@@ -201,3 +201,44 @@ def test_risk_params_exported_for_dashboard():
         "drawdown_kill_switch",
     ):
         assert key in safety.RISK_PARAMS
+
+
+def test_deploying_capital_does_not_trip_the_drawdown_kill_switch():
+    """Regression: filling the fast sleeve to its own published cap is NOT a loss.
+
+    `entry_allowed` permits the fast leg up to 25% of the book. Under a cash-based
+    drawdown that alone reads as a 20%+ drawdown and permanently kill-switches the
+    agent at zero P&L. Drawdown is measured against EQUITY (cash + deployed).
+    """
+    from agent.store import db
+
+    ledger.seed_if_empty()
+    with db.connect() as conn:
+        for i in range(5):
+            db.open_position(conn, {
+                "market_id": f"manifold:dd{i}", "venue": "manifold", "side": "YES",
+                "shares": 1000.0, "entry_price": 0.5, "notional_in": 500.0, "leg": "fast",
+            })
+    assert ledger.balance() == 7500.0
+    assert ledger.equity() == 10000.0
+    assert ledger.drawdown() == 0.0
+    assert not safety.check_drawdown().tripped
+
+
+def test_drawdown_measures_realized_loss_on_equity():
+    from agent.store import db
+
+    ledger.seed_if_empty()
+    with db.connect() as conn:
+        pid = db.open_position(conn, {
+            "market_id": "manifold:dd-loss", "venue": "manifold", "side": "YES",
+            "shares": 1000.0, "entry_price": 0.5, "notional_in": 3000.0, "leg": "fast",
+        })
+        # a total loss on 3000 of a 10000 equity book = 30% drawdown
+        db.close_position(
+            conn, pid, exit_price=0.0, notional_out=0.0,
+            exit_decision_id=None, venue_exit_order=None, p_yes_at_exit=0.0,
+        )
+    assert ledger.equity() == 7000.0
+    assert ledger.drawdown() == 0.30
+    assert safety.check_drawdown().tripped

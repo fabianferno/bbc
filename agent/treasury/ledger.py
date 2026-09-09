@@ -83,7 +83,14 @@ def record(
             }
         )
         doc = conn["treasury"].find_one({"_id": TREASURY_DOC_ID}) or {}
-        hwm = max(float(doc.get("high_water_mark") or 0.0), new_balance)
+        # HWM tracks EQUITY (cash + notional deployed in open positions), not cash.
+        # Every event that moves equity is written through `record()`, and each one is
+        # appended AFTER the position row it refers to has been inserted/updated — so
+        # `deployed()` here already reflects the position change this event settles.
+        # An "entry" therefore leaves equity flat (cash down, deployed up) instead of
+        # looking like a loss, and refreshing the HWM here stays sufficient: nothing
+        # else in the system changes equity.
+        hwm = max(float(doc.get("high_water_mark") or 0.0), round(new_balance + deployed(), 6))
         conn["treasury"].update_one(
             {"_id": TREASURY_DOC_ID},
             {"$set": {"balance": new_balance, "high_water_mark": hwm, "updated_at": _now()}},
@@ -102,12 +109,22 @@ def high_water_mark() -> float:
     return float(doc.get("high_water_mark") or 0.0) if doc else 0.0
 
 
+def equity() -> float:
+    """Total capital: idle cash plus notional currently deployed in open positions.
+
+    `balance()` alone is CASH, so deploying capital into an open position looks
+    identical to losing it. Every "how big is the book" question — drawdown, the
+    daily-loss denominator, sizing sleeves, the entry caps — means equity.
+    """
+    return round(balance() + deployed(), 6)
+
+
 def drawdown() -> float:
-    """Fraction below the high-water mark. 0.0 when the HWM is 0."""
+    """Fraction of EQUITY below the equity high-water mark. 0.0 when the HWM is 0."""
     hwm = high_water_mark()
     if hwm <= 0:
         return 0.0
-    return max(0.0, (hwm - balance()) / hwm)
+    return max(0.0, (hwm - equity()) / hwm)
 
 
 def events(limit: int = 100) -> list[dict[str, Any]]:
@@ -131,6 +148,7 @@ def snapshot() -> dict[str, Any]:
         "currency": CURRENCY,
         "seed": float(doc.get("seed") or 0.0),
         "balance": balance(),
+        "equity": equity(),
         "high_water_mark": high_water_mark(),
         "drawdown": drawdown(),
         "updated_at": doc.get("updated_at"),

@@ -69,7 +69,9 @@ def size_position(
     """
     headroom: float | None = None
     if bankroll is None:
-        treasury = ledger.balance() or settings.agent_bankroll
+        # The sleeve is a share of TOTAL capital (cash + deployed), not of idle cash:
+        # otherwise each open position shrinks the sleeve that is meant to fund it.
+        treasury = ledger.equity() or settings.agent_bankroll
         sleeve = treasury * legs.sleeve_fraction(leg)
         headroom = sleeve - ledger.deployed(leg)
         if headroom <= 0:
