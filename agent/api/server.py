@@ -20,9 +20,11 @@ from sse_starlette.sse import EventSourceResponse
 from agent.api import seeds
 from agent.api.analyze import run_analysis
 from agent.config import settings
+from agent.execution import safety
 from agent.logging import get_logger
 from agent.onchain import explorer_tx_url, get_solana, network_name
 from agent.store import db
+from agent.treasury import flywheel, ledger, legs
 
 log = get_logger(__name__)
 
@@ -322,6 +324,68 @@ def metrics() -> dict[str, Any]:
         "real_tx_count": sum(1 for a in anchors if not a["mocked"]),
         "usdc_balance": sol.usdc_balance(),
         "model": settings.bedrock_model_id,
+    }
+
+
+@app.get("/api/treasury")
+def treasury() -> dict[str, Any]:
+    """Notional treasury state. NOT realized cash — paper mode, notional USD book."""
+    snap = ledger.snapshot()
+    ok, checks = safety.all_clear()
+    return {
+        **snap,
+        "mode": "paper",
+        "simulated": True,
+        "notional": True,
+        "deployed": {
+            "fast": ledger.deployed(legs.FAST),
+            "slow": ledger.deployed(legs.SLOW),
+            "total": ledger.deployed(),
+        },
+        "risk_params": safety.RISK_PARAMS,
+        "breakers": [
+            {"name": c.name, "tripped": c.tripped, "reason": c.reason} for c in checks
+        ],
+        "halted": not ok,
+        "events": ledger.events(limit=50),
+    }
+
+
+@app.get("/api/flywheel")
+def flywheel_state() -> dict[str, Any]:
+    return {**flywheel.totals(), "events": flywheel.events(limit=50)}
+
+
+@app.get("/api/positions/settled")
+def settled_positions(limit: int = 100) -> dict[str, Any]:
+    with db.connect() as conn:
+        rows = [
+            r for r in db.positions_with_market(conn, limit=limit)
+            if r.get("status") == "closed" and r.get("venue") != "simulated"
+        ]
+    wins = {"fast": 0, "slow": 0}
+    counts = {"fast": 0, "slow": 0}
+    pnl = {"fast": 0.0, "slow": 0.0}
+    for r in rows:
+        leg = r.get("leg") or "slow"
+        counts[leg] += 1
+        pnl[leg] += float(r.get("pnl") or 0.0)
+        if float(r.get("pnl") or 0.0) > 0:
+            wins[leg] += 1
+    return {
+        "mode": "paper",
+        "simulated": True,
+        "notional": True,
+        "positions": rows,
+        "leg_performance": {
+            leg: {
+                "settled": counts[leg],
+                "wins": wins[leg],
+                "win_rate": (wins[leg] / counts[leg]) if counts[leg] else None,
+                "realized_pnl_notional": round(pnl[leg], 4),
+            }
+            for leg in ("fast", "slow")
+        },
     }
 
 
