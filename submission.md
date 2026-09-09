@@ -15,8 +15,8 @@
 ## One line (280 chars, for the registration form)
 
 > BBC is an autonomous prediction-market trading agent that broadcasts its own reasoning,
-> positions and P&L as a live news channel — a bull in a suit reading out every trade, with each
-> reasoning trace anchored on Solana so anyone can verify the call.
+> positions and P&L as a live news channel — running a published 80/20 barbell strategy with
+> code-enforced risk breakers, each trace anchored on Solana so anyone can verify the call.
 
 ---
 
@@ -48,16 +48,27 @@ BBC makes the reasoning the product and the broadcast the interface. For each pr
    date-bounded news. A `temporal_guard` drops any source published after the market's reasoning
    cutoff, so backtests and live runs cannot cheat with hindsight. The graph summary is injected
    into the forecast prompt and drives the decision; remove it and the decision changes.
-2. **Decides like a calibrated trader.** It estimates P(YES), computes edge versus market price,
-   sizes with fractional Kelly under per-category calibration, and executes — constrained by hard
-   circuit breakers the language model cannot bypass (daily loss cap, max open positions,
-   per-market cap, slippage guard, API-failure cooldown, manual trip).
+2. **Decides like a calibrated trader, on a barbell.** It estimates P(YES), computes edge versus
+   market price, sizes with fractional Kelly under per-category calibration, and executes.
+   Positions split 80/20 into fast and slow legs by **intended hold duration**, not market
+   category — the fast leg is a hold-time and sizing discipline over the same filtered candidate
+   set, not a new class of bet. Every published risk parameter (per-position cap, per-leg
+   deployment caps, category concentration cap, a 20%-drawdown kill-switch with no auto-expiry)
+   is a constant in `agent/execution/safety.py`, enforced by breakers the language model cannot
+   bypass, and rendered on the public dashboard from that same code.
 3. **Reports it.** Every stage — discovery, evidence, probability, entry, exit, settlement — is
    emitted as a broadcast segment with a headline, a lower third and a ticker line. The reasoning
    trace is the script. The anchor is a bull in a suit; the newsroom is the dashboard.
 4. **Proves it on Solana.** It canonicalises the full trace (ontology, graph, evidence, decision),
    hashes it (sha256), and anchors the hash in a Solana memo transaction. Anyone can re-hash the
    trace in their browser at `/verify/<id>` and confirm it matches the chain.
+5. **Runs a profit flywheel — as accounting, today.** Every profitable settlement splits its
+   realized notional P&L 50% back into the treasury, 35% into a simulated $ANSEM buy priced at
+   real live spot, 15% into an operational reserve. **The Desk** (`/desk`) is the public
+   transparency dashboard: open positions, settled history, the treasury and its drawdown against
+   the kill-switch line, flywheel totals, published risk parameters, and fast/slow leg win rates
+   reported separately, never blended. No $ANSEM has been purchased or distributed; every event
+   and API response says so (`mode: "paper"`, `simulated: true`).
 
 **Pipeline:** discovery → cheap filters → ambiguity check → date-bounded Exa search (temporal
 guard) → GraphRAG (ontology → entities → graph) → graph-augmented reasoning → calibrated Kelly
@@ -95,19 +106,20 @@ down in advance precisely so they cannot be moved to fit a result.
 position book in real time — the raw wire, ahead of the delayed public broadcast. Everyone can
 watch BBC; holders watch it as it is written.
 
-**2 · The Bull Pool.** A share of the agent's trading proceeds accumulates into a prize pool. On
-each payout round the pool is distributed to **randomly drawn $BBC holders, weighted by holding**.
-This is a pool-together structure, not a lottery you buy into: **nobody's principal is ever at
-risk** — you keep every token you hold, the agent's edge is the yield, and holding more only
-changes your odds of being drawn. Draws execute on-chain and are independently verifiable, on the
-same principle as the reasoning anchors. (In paper mode the agent earns nothing, so there is
-nothing to distribute yet; the pool is funded by realised proceeds only.)
+**2 · The profit flywheel.** Every profitable settlement splits its realized notional P&L 50% back
+into the treasury, 35% into an $ANSEM open-market buy, 15% into an operational reserve. The
+$ANSEM share is priced at real, live spot at settlement time so the quantities are checkable by
+anyone. **Today this runs as simulated accounting over paper-mode trades** — `agent/treasury/flywheel.py`
+records the split, the price and the source on every event, but no $ANSEM has been purchased or
+distributed. Holder distribution — snapshots, a ~6-hour minimum hold, Streamflow streaming of the
+$ANSEM share over 24–48 hours — is the planned post-launch mechanism, built after the token exists.
 
 **3 · The ClawPump fee flywheel.** $BBC launches on ClawPump, so trading fees accrue to the project
 from day one, win or lose. ClawPump keeps 35%, and 10% of *their* share buys $CLAW and $ANSEM on
 the open market, funding further builder rewards. Attention drives volume, volume drives fees, fees
-fill the Bull Pool, and the pool gives holders a reason to keep watching. The broadcast sits at the
-top of that funnel: a trading agent that narrates itself is natively clippable.
+feed the profit flywheel above, and the flywheel gives holders a reason to keep watching. The
+broadcast sits at the top of that funnel: a trading agent that narrates itself is natively
+clippable.
 
 ---
 
@@ -164,10 +176,11 @@ screen) or a large external holder base. Live counters are on the app's Ledger t
 3. **Market, GTM, traction.** Prediction-market volume keeps compounding and every agent in the
    space is opaque. Our GTM is the broadcast itself: the product manufactures the clips. Traction
    today is a continuously running autonomous alpha with verifiable anchors, not a user count.
-4. **Token utility, roadmap, vision.** Access, the Bull Pool, and the ClawPump fee flywheel today.
-   Roadmap: clear the `prd.md` gates from paper into dryrun and then live, ship the first on-chain
-   Bull Pool draw, route inference through UsePod, and open the broadcast to other agents — a
-   newsroom where any autonomous trader has to show its work on air.
+4. **Token utility, roadmap, vision.** Access, the profit flywheel, and the ClawPump fee flywheel
+   today. Roadmap: clear the `prd.md` gates from paper into dryrun and then live, launch holder
+   distribution — snapshots, minimum hold, Streamflow streaming — for the flywheel's $ANSEM share,
+   route inference through UsePod, and open the broadcast to other agents — a newsroom where any
+   autonomous trader has to show its work on air.
 
 ---
 

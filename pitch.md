@@ -14,9 +14,10 @@
 ## 1. The one-liner
 
 > Every trading agent gives you a number. BBC gives you the **broadcast** — a bull in a suit
-> reading out the knowledge graph it built, the probability it computed, the position it took
-> and what happened to it — with every reasoning trace anchored on Solana so anyone can check
-> the call was earned, not hallucinated.
+> running a published 80/20 barbell strategy against code-enforced risk breakers, reading out
+> the knowledge graph it built, the probability it computed, the position it took and what
+> happened to it — with every reasoning trace anchored on Solana so anyone can check the call
+> was earned, not hallucinated.
 
 ## 2. The problem (15 seconds)
 
@@ -32,8 +33,13 @@ BBC makes the reasoning the product *and* makes it watchable:
 1. **Builds a knowledge graph.** For each market it designs a bespoke ontology, then extracts an
    entity graph from *date-bounded* news (leakage-guarded). The graph **feeds the forecast** — it
    drives the decision, it isn't decoration.
-2. **Decides like a calibrated trader.** Estimates P(YES), computes edge vs. market price, sizes
-   with fractional Kelly under hard circuit breakers the LLM cannot bypass, and trades.
+2. **Decides like a calibrated trader, on a barbell.** Estimates P(YES), computes edge vs. market
+   price, sizes with fractional Kelly, and trades on an 80/20 barbell split by *intended hold
+   duration* — fast (≤48h) vs. slow — not by market category, so the same filtered candidate set
+   and exclusions (no sub-hour crypto, no sports) apply to both legs. Every published risk
+   parameter — position cap, per-leg deployment caps, category concentration cap, a 20%-drawdown
+   kill-switch with no auto-expiry — is a constant enforced by circuit breakers the LLM cannot
+   bypass, and renders live on the public dashboard, **The Desk** (`/desk`), from that same code.
 3. **Broadcasts it.** Every stage — discovery, evidence, probability, entry, exit, settlement —
    is emitted as a news segment with a headline, a lower third and a ticker line. The reasoning
    trace *is* the script. Auditability becomes a viewing experience instead of a log file.
@@ -59,17 +65,19 @@ would rather show a judge a gate we haven't passed yet than a number we can't de
 real time — the raw wire, ahead of the delayed public broadcast. Everyone can watch BBC; holders
 watch it live.
 
-**2 · The Bull Pool.** A share of the agent's trading proceeds accumulates into a prize pool.
-Each payout round, that pool is distributed to randomly drawn $BBC holders, weighted by holding.
-It's a pool-together structure: **nobody's principal is ever at risk** — you keep every token you
-hold, the agent's edge is the yield, and size only changes your odds of being drawn. Draws
-execute on-chain and are independently verifiable, like everything else the agent does.
+**2 · The profit flywheel.** Every profitable settlement splits its realized notional P&L 50%
+back into the treasury, 35% into an $ANSEM buy, 15% into an operational reserve — priced at real,
+live $ANSEM spot at settlement so the quantities are checkable by anyone. **This runs today as
+simulated accounting over paper-mode trades**: no $ANSEM has been purchased or distributed yet,
+and every event says so. Holder distribution — snapshots, a ~6-hour minimum hold, Streamflow
+streaming of the $ANSEM share over 24–48 hours — is the planned post-launch mechanism, built once
+the token exists.
 
 **3 · The ClawPump fee flywheel.** $BBC launches on ClawPump, so trading fees accrue to the
 project from day one, win or lose. ClawPump keeps 35%; 10% of *their* share buys $CLAW and $ANSEM
 on the open market, funding further builder rewards. Attention drives volume, volume drives fees,
-fees fill the Bull Pool, the pool gives holders a reason to keep watching. The broadcast is the
-top of that funnel — and a trading agent that narrates itself is natively clippable.
+fees feed the profit flywheel above, which gives holders a reason to keep watching. The broadcast
+is the top of that funnel — and a trading agent that narrates itself is natively clippable.
 
 ---
 
@@ -108,9 +116,9 @@ node; right — evidence streams in under the lower third.*
 **[2:40–3:00] — Verify, autonomy, token, close.**
 *Screen: Verify page → "✓ Verified". Cut to the autonomous loop running, then the $BBC page.*
 > "Anyone can re-hash the reasoning in their browser and confirm it matches the chain. And it does
-> all of this on its own — picking markets, reasoning, trading, reporting. $BBC holders get the
-> live feed, and a share of what the agent makes gets drawn back to holders through the Bull Pool.
-> BBC: the autonomous trader that reports its own trades."
+> all of this on its own — picking markets, reasoning, trading, reporting on a published barbell
+> strategy with enforced risk breakers. $BBC holders get the live feed, and profitable settlements
+> feed a flywheel back toward $ANSEM. BBC: the autonomous trader that reports its own trades."
 
 **Fallbacks:** use ▶ replay (deterministic, no API latency); if the live API is down the seeded
 markets still play the full sequence.
@@ -123,7 +131,7 @@ markets still play the full sequence.
 |---|---|
 | **On-chain volume** | $BBC trading on ClawPump from launch, plus one anchor transaction per decision — the agent generates Solana activity every cycle it runs, not only at demo time. |
 | **Attention** | "A spectator sport." An agent that broadcasts itself is built to be clipped: each decision ships as a segment with a headline and a lower third. The mascot does work — a bull anchor is a format, not a logo. |
-| **Token design** | The Bull Pool ties holder outcomes to the agent's realised edge without risking holder principal, and the ClawPump fee split funds it. Utility is access + yield, not governance theatre. |
+| **Token design** | The profit flywheel ties $ANSEM buy pressure to the agent's realised edge — earned on profitable settlements, not recycled — and the ClawPump fee split funds it. Currently simulated accounting over paper-mode trades; holder distribution is post-launch. |
 | **Builders onboarded** | A Python/LLM/AWS-Bedrock stack crossing onto Solana for the first time — exactly the traditional-tech agentic developer the track is trying to pull in. |
 | **Deploy early** | The paper-mode alpha runs continuously, so the agent accumulates a public, time-stamped track record across the six weeks rather than in deadline week. |
 | **"We score what you added, not what you wrapped."** | GraphRAG ontology design, temporal-leakage guards, per-category calibration, non-bypassable circuit breakers and the broadcast layer are all ours. The LLM is one bounded component inside a multi-stage system. |
@@ -145,8 +153,9 @@ a direct job: keeping the broadcast on air after the Clawrena closes.
   and holder access to the live feed.
 
 **Caveats we own:** the alpha trades paper on Manifold, so there is no realized cash P&L yet; the
-Bull Pool can only distribute what the agent actually earns, and in paper mode that is zero by
-construction; the Solana migration from the earlier EVM implementation is in flight.
+flywheel is simulated accounting over those paper-mode settlements and has not purchased or
+distributed any $ANSEM; holder distribution mechanics are post-launch; the Solana migration from
+the earlier EVM implementation is in flight.
 
 ---
 
@@ -162,9 +171,9 @@ construction; the Solana migration from the earlier EVM implementation is in fli
 - **"How is this not just an LLM wrapper?"** Ontology design + graph extraction + calibrated Kelly
   sizing + circuit breakers + on-chain anchoring is a multi-stage autonomous system; the LLM is one
   component, bounded by limits it cannot bypass.
-- **"Is the Bull Pool a lottery?"** No — participants stake nothing and can lose nothing. It's a
-  no-loss prize distribution: the agent's proceeds are the prize, holdings determine odds, draws
-  are on-chain and verifiable.
+- **"Is the flywheel real yet?"** The accounting is real and reproducible — every profitable
+  settlement writes a 50/35/15 split priced at live $ANSEM spot — but no $ANSEM has been bought
+  or distributed. That happens post-launch, once holder snapshots and streaming are built.
 - **"What's the business model?"** ClawPump trading fees from day one, plus builder-code fees on
   fills the agent recommends (on-chain attribution, no custody).
 - **"Why Solana?"** Cheap, fast anchoring makes proving *every* decision economical rather than a

@@ -42,16 +42,17 @@ Solana, 19 Aug – 1 Oct 2026).
    open position book in real time — the raw wire, ahead of the delayed public broadcast.
    Non-holders see the segments after the tape delay; holders see them as they are written.
 
-2. **The Bull Pool.** A share of the agent's trading proceeds accumulates into a prize pool.
-   On each payout round the pool is distributed to randomly drawn $BBC holders, weighted by
-   holding — a pool-together structure, not a lottery you buy into. **Nobody's principal is
-   ever at risk**: you keep your tokens, the agent's edge is the yield, and holding more only
-   changes your odds of being drawn. Draws happen on-chain and are independently verifiable.
+2. **The profit flywheel.** Every profitable settlement splits its realized notional P&L 50%
+   back into the treasury, 35% into an $ANSEM buy, 15% into an operational reserve, priced at
+   real, live $ANSEM spot so the quantities are checkable by anyone. **This runs today as
+   simulated accounting over paper-mode trades** (`agent/treasury/flywheel.py`) — no $ANSEM has
+   been purchased or distributed. Holder distribution — snapshots, a ~6-hour minimum hold,
+   Streamflow streaming over 24–48 hours — ships post-launch, once the token exists.
 
 3. **The ClawPump fee flywheel.** $BBC launches on ClawPump, so trading fees accrue to the
    project from day one, win or lose. ClawPump keeps 35%; 10% of *their* share buys $CLAW and
    $ANSEM on the open market, which funds further builder rewards. Volume on the broadcast
-   feeds the pool, and the pool gives holders a reason to stay tuned.
+   feeds the profit flywheel above, and the flywheel gives holders a reason to stay tuned.
 
 ## Why it's different
 
@@ -68,6 +69,12 @@ reads it out.
 3. **A real autonomous engine underneath.** Filters → ambiguity check → date-bounded Exa
    search (temporal-guarded against leakage) → graph-augmented reasoning → calibrated fractional
    Kelly sizing → paper/dry-run execution. Circuit breakers the LLM cannot bypass.
+4. **A published barbell strategy against a notional treasury.** Positions split 80/20 fast/slow
+   by *intended hold duration* (≤48h vs. longer), not market category, so the same filters and
+   exclusions above still apply to both legs. Every risk parameter — position cap, per-leg
+   deployment caps, category concentration cap, a 20%-drawdown kill-switch with no auto-expiry —
+   is a constant in `agent/execution/safety.py::RISK_PARAMS`, enforced by code, and rendered on
+   **The Desk** (`/desk`), the public transparency dashboard, from that same code.
 
 Cheap by design: reasoning runs on **Amazon Nova** via Bedrock — a full analyze costs ~**$0.015**.
 
@@ -120,9 +127,10 @@ Design spec (historical, pre-rename): [`docs/superpowers/specs/2026-05-25-openmi
 ```bash
 uv venv && source .venv/bin/activate
 uv pip install -e ".[dev]"
-cp .env.example .env        # fill in AWS (Bedrock/Nova), Exa, and the Solana wallet key
+cp .env.example .env        # fill in AWS (Bedrock/Nova), Exa, the Solana wallet key,
+                             # AGENT_TREASURY_SEED and ANSEM_TOKEN_MINT
 mkdir -p data logs
-python -m agent init-db
+python -m agent init-db     # also seeds the notional treasury ledger
 
 # run the API sidecar
 uvicorn agent.api.server:app --port 8000
@@ -131,6 +139,13 @@ uvicorn agent.api.server:app --port 8000
 Fund the Solana wallet with devnet SOL (`solana airdrop 2 <pubkey> --url devnet`) so anchor
 transactions can pay their fee. Without a configured key, on-chain calls degrade to
 clearly-flagged mock transactions.
+
+**Treasury / flywheel environment:**
+
+- `AGENT_TREASURY_SEED` — the notional USD amount the treasury ledger is seeded with on
+  `init-db` (default `10000.0`). Notional only; nothing changes hands.
+- `ANSEM_TOKEN_MINT` — the $ANSEM mint address used to fetch live spot price for the flywheel's
+  simulated $ANSEM-buy accounting. Unset it and flywheel events still write, with a null price.
 
 **2. Frontend (Node 18+):**
 
@@ -154,8 +169,9 @@ python -m tools.seed_demo            # auto-pick top open markets
   ClawPump puts real volume on the book from launch day.
 - **Attention** — "this is a spectator sport." A trading agent that broadcasts itself is
   built to be clipped: every decision is already a segment with a headline and a lower third.
-- **Token design** — the Bull Pool ties holder outcomes to the agent's edge without putting
-  holder principal at risk, and the ClawPump fee split funds the pool.
+- **Token design** — the profit flywheel ties $ANSEM buy pressure to the agent's realised edge,
+  earned on profitable settlements only, and the ClawPump fee split funds it. Currently simulated
+  accounting over paper-mode trades; holder distribution is post-launch.
 - **Deploy early** — the paper-mode alpha runs continuously, so the agent accumulates a public
   track record over the six weeks rather than in deadline week.
 - **Builders onboarded** — this is a Python/LLM stack crossing onto Solana for the first time.

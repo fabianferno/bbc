@@ -137,6 +137,30 @@ Hard caps regardless of Kelly:
 - $5 per market for first 30 days of real money
 - $10 per market thereafter
 
+### 5.7 The barbell
+
+Allocation splits the treasury 80% fast / 20% slow, by **intended hold
+duration**, not market category. At entry the LLM's structured plan supplies
+`intended_hold_hours`; a position classifies `fast` if that value is ≤ 48 hours,
+`slow` otherwise (`agent/treasury/legs.py::FAST_LEG_MAX_HOURS`). The leg is fixed
+at entry and never reclassified — a fast trade that drifts into a week-long hold
+reports as a *failed fast trade*, not a slow one, which is what keeps the
+separately-reported leg win rates meaningful.
+
+This is written to be consistent with §5.2, not to contradict it: the fast leg
+is **not** a new market category. It draws from the same filtered candidate set
+as §5.3 — the sub-hour-crypto and sports exclusions in §5.2 stand unchanged. What
+makes the leg "fast" is a hold-time and sizing discipline, enabled by the
+continuous buy/sell model of §5.4: because every position carries an ongoing
+exit decision re-evaluated each cycle (not a bet-and-hold to resolution), the
+agent can realize a fast-leg thesis well before a market settles. The daily
+cadence on the fast leg therefore comes from **exits**, not from settlements.
+
+Two distinct limits both bind on sizing: the **sleeve** (80%/20%) is the share of
+treasury a leg is entitled to; the **deployment cap** (§6.4) is how much of that
+entitlement may be at risk simultaneously. The deployment cap is the tighter
+constraint in practice — see §6.4.
+
 ---
 
 ## 6. Architecture
@@ -213,6 +237,29 @@ These are hard-coded and not bypassable by the LLM:
 - **Slippage guard**: if execution price differs from quoted by >2%, cancel order.
 - **API failure cooldown**: 3 consecutive API failures → halt for 1h.
 - **Liquidity check**: re-verify book depth before every entry. If liquidity dropped below threshold since market was selected, skip.
+
+### 6.4 Published risk parameters
+
+Every number below is a constant in `agent/execution/safety.py::RISK_PARAMS`, not
+a document that can drift from the code. The transparency dashboard renders
+these constants directly and shows each one's live utilisation and breaker
+state.
+
+| Parameter | Value | Enforced by |
+|---|---|---|
+| Max position fraction | 5% of treasury, per position | `check_position_cap` |
+| Fast-leg deployment cap | 25% of treasury, simultaneously at risk | `check_leg_allocation` |
+| Slow-leg cap | 20% of treasury, total exposure | `check_leg_allocation` |
+| Category concentration cap | 40% of total open exposure, per category | `check_category_concentration` |
+| Drawdown kill-switch | 20% below the high-water mark | `check_drawdown` |
+| Fast sleeve | 80% of treasury | `strategy/sizing.py` |
+| Slow sleeve | 20% of treasury | `strategy/sizing.py` |
+| Fast-leg max hold | 48 hours | `treasury/legs.py::FAST_LEG_MAX_HOURS` |
+
+The drawdown kill-switch has **no auto-expiry**, unlike the daily-loss breaker's
+24-hour cooldown. This is deliberate: clearing it requires an explicit
+`reset-breaker` invocation plus a published reassessment note. The absence of a
+timer is what makes it a kill-switch rather than a pause.
 
 ---
 

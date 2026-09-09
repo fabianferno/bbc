@@ -62,7 +62,8 @@ Each cycle: (1) check circuit breakers — if any tripped, halt and alert; (2) c
 - `agent/execution/` — `paper.py` (`ManifoldExecutor`), `live.py` (`LiveExecutor` for Polymarket; the same class handles `dryrun` by short-circuiting submission), `safety.py` (hard-coded breakers — daily loss cap, max open positions, per-market cap, slippage guard, API-failure cooldown, manual trip. The LLM cannot bypass these).
 - `agent/backtest/` — `harness.py` (replays cached snapshots), `leakage_check.py` (Phase 1 gate), `metrics.py` (Brier/ECE/ROI).
 - `agent/monitor/` — `positions.py` (re-eval loop), `report.py` (daily report numbers — same metrics the gates check), `alerts.py` (webhook).
-- `agent/store/` — `schema.sql` is the source of truth for the SQLite schema; `db.py` is a thin DAO. All persistence goes through `db.connect()`.
+- `agent/store/` — the store is **MongoDB**; `db.py` is the DAO and owns collection indexes in `init_db()`. All persistence goes through `db.connect()`.
+- `agent/treasury/` — `ledger.py` (append-only notional USD treasury, balance derived by replaying `treasury_events`), `legs.py` (barbell leg classification by intended hold duration), `flywheel.py` (simulated profit-split accounting on profitable settlements, priced at live $ANSEM spot).
 - `agent/config.py` — `settings` is a pydantic-settings singleton; **import `settings` from `agent.config` rather than reading `os.environ` directly** (existing convention).
 
 ### Discovery cost-shaping
@@ -80,5 +81,15 @@ The `agent_mode` setting selects both data source and executor:
 
 ### Safety invariants
 - Breakers in `execution/safety.py` are **not bypassable by the LLM**. New limits go here, not in prompts.
-- Decisions and outcomes are logged to SQLite so calibration can recompute; don't add ephemeral state that bypasses the DB.
+- Decisions and outcomes are logged to MongoDB so calibration can recompute; don't add ephemeral state that bypasses the DB.
 - `temporal_guard` ensures backtests use only information available before a market's cutoff. Any new search/data path must go through it or document why it can't leak.
+- The treasury is a **notional USD book** (`agent/treasury/ledger.py`). Its balance is
+  derived by replaying `treasury_events`, never assigned. Backtest positions
+  (`venue == "simulated"`) never touch it.
+- The barbell leg is set from the LLM's `intended_hold_hours` at entry and is
+  **immutable** — a fast trade held long is a failed fast trade, not a slow one.
+- Published risk parameters live in `safety.RISK_PARAMS` and are enforced by
+  breakers. The dashboard renders them from that dict; a pinned number the code
+  does not enforce is a defect.
+- The flywheel is **simulated**. Every event carries `mode: "paper"`; every API
+  response carries `simulated: true`. No tokens have been purchased or distributed.
