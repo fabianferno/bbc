@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { RefreshCw, Radio, Ticket, Eye } from "lucide-react";
 import { MarketCard } from "@/components/market-card";
+import { IsoFloor } from "@/components/iso-floor";
 import { SectionLabel, Button, Pill, ReadoutStrip } from "@/components/ui";
 import { api, type MarketsResp, type MetricsResp } from "@/lib/api";
 import { useOnAir } from "@/components/channel-frame";
@@ -127,51 +128,15 @@ export default function Home() {
             </div>
           </div>
 
-          {/* the studio monitor — the desk's own feed, cutting with the rota */}
-          <aside className="monitor monitor-lit relative hidden overflow-hidden p-5 lg:block lg:self-end lg:mb-10">
-            <div className="flex items-center gap-2">
-              <span className="lamp" aria-hidden />
-              <span className="chyron text-red">On air now</span>
-              <span className="ml-auto chyron numeric text-faint">
-                {String((slot % bulletins.length) + 1).padStart(2, "0")} /{" "}
-                {String(bulletins.length).padStart(2, "0")}
-              </span>
-            </div>
-
-            <div key={slot} className="cut-in mt-4">
-              <p className="chyron text-faint">
-                {onAir ? onAir.category || onAir.venue : "Standby"}
-              </p>
-              <p className="mt-2 line-clamp-3 text-[19px] leading-snug text-white">
-                {onAir ? onAir.question : "Newsroom feed offline — start the agent API to bring the desk on air"}
-              </p>
-              <div className="mt-5 flex items-end gap-3">
-                <span className="numeric text-[2.75rem] leading-none text-white">
-                  {onAir?.last_price_yes == null
-                    ? "—"
-                    : `${Math.round(onAir.last_price_yes * 100)}%`}
-                </span>
-                <span className="mb-1 text-[13px] text-dim">market on YES</span>
-              </div>
-            </div>
-
-            <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-rule">
-              {[
-                {
-                  label: "Traces anchored",
-                  value: metrics ? String(metrics.anchor_count) : "—",
-                },
-                {
-                  label: "Inference today",
-                  value: metrics ? `$${metrics.llm_cost_today.toFixed(3)}` : "—",
-                },
-              ].map((c) => (
-                <div key={c.label} className="bg-[#0f141b] px-4 py-3">
-                  <p className="chyron text-faint">{c.label}</p>
-                  <p className="numeric mt-1 text-[15px] text-white">{c.value}</p>
-                </div>
-              ))}
-            </div>
+          {/* the trading floor — an isometric field of probability columns,
+              one of which is on air and stands for the price on the rota.
+              No frame: it sits in the studio dark like the rest of the set. */}
+          <aside className="relative hidden lg:block lg:self-end lg:mb-10">
+            <IsoFloor
+              price={onAir?.last_price_yes ?? null}
+              cut={slot}
+              className="block h-[380px] w-full"
+            />
           </aside>
         </div>
       </section>
