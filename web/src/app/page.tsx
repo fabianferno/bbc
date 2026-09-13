@@ -111,7 +111,7 @@ export default function Home() {
               so you can check its working after the fact.
             </p>
 
-            <div className="mt-8 flex flex-wrap items-center gap-3">
+            <div id="tour-hero-actions" className="mt-8 flex flex-wrap items-center gap-3">
               <Link href="/auto">
                 <Button variant="primary">
                   <Radio className="size-3.5" strokeWidth={2.5} aria-hidden />
@@ -142,7 +142,7 @@ export default function Home() {
       </section>
 
       {/* ── the wall ──────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-[1440px] px-4 py-12 sm:px-6">
+      <section id="tour-wall" className="mx-auto max-w-[1440px] px-4 py-12 sm:px-6">
         <SectionLabel className="mb-5">
           The studio wall — what the desk has done so far
         </SectionLabel>
@@ -190,7 +190,7 @@ export default function Home() {
           </Button>
         </div>
 
-        <div className="monitor overflow-hidden">
+        <div id="tour-running-order" className="monitor overflow-hidden">
           {loading ? (
             <div className="chyron px-4 py-16 text-center text-faint">
               Cueing the running order…

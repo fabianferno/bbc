@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { StudioClock } from "@/components/broadcast";
 import { ChannelMark } from "@/components/channel-mark";
 import { AuthControls } from "@/components/auth-controls";
+import { TourButton } from "@/components/onboarding/onboarding";
 
 /** `short` is what fits on a phone; `label` is the programme's real name. */
 const PROGRAMMES = [
@@ -55,14 +56,14 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-rule bg-studio/95 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-[1440px] items-center gap-4 px-4 sm:px-6">
-        <Link href="/" className="flex shrink-0 items-baseline gap-2.5">
+        <Link id="tour-channel" href="/" className="flex shrink-0 items-baseline gap-2.5">
           <ChannelMark size="sm" />
           <span className="chyron hidden text-dim sm:inline">
             Bull Broadcasting Corporation
           </span>
         </Link>
 
-        <nav className="ml-1 flex shrink-0 items-center gap-0.5 sm:ml-2 sm:gap-1">
+        <nav id="tour-programmes" className="ml-1 flex shrink-0 items-center gap-0.5 sm:ml-2 sm:gap-1">
           {PROGRAMMES.map((p) => {
             const active = pathname === p.href;
             return (
@@ -86,7 +87,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="ml-auto flex shrink-0 items-center gap-3">
-          <span className="chyron hidden items-center gap-2 md:flex">
+          <span id="tour-onair" className="chyron hidden items-center gap-2 md:flex">
             {status === "offline" ? (
               <>
                 <span className="inline-block size-2 rounded-full bg-faint" aria-hidden />
@@ -102,7 +103,10 @@ export function SiteHeader() {
             )}
           </span>
           <StudioClock className="chyron hidden text-dim sm:block" />
-          <AuthControls />
+          <TourButton className="hidden px-2 lg:inline-flex" />
+          <span id="tour-wallet" className="flex items-center">
+            <AuthControls />
+          </span>
         </div>
       </div>
     </header>

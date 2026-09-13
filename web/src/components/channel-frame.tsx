@@ -136,7 +136,7 @@ export function ChannelFrame({ children }: { children: ReactNode }) {
       {/* clears the fixed furniture: lower third (~124px) plus tape (~36px) */}
       <main className="relative z-10 pb-[10.5rem]">{children}</main>
 
-      <div className="fixed inset-x-0 bottom-0 z-40">
+      <div id="tour-lowerthird" className="fixed inset-x-0 bottom-0 z-40">
         <LowerThird
           key={String(on.cut ?? "") + String(on.brandSuffix ?? "")}
           brandSuffix={on.brandSuffix ?? "Markets"}

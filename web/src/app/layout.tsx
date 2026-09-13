@@ -6,6 +6,7 @@ import { Providers } from "@/components/providers";
 import { FaucetPrompt } from "@/components/faucet-prompt";
 import { ChannelFrame } from "@/components/channel-frame";
 import { AnchorVideo } from "@/components/anchor-video";
+import { Onboarding } from "@/components/onboarding/onboarding";
 import "./globals.css";
 
 // Alte Haas Grotesk — a Helvetica as it printed in an old Muller-Brockmann
@@ -81,10 +82,14 @@ export default function RootLayout({
           with the finish review, the verdict, and DESIGN.md.
         */}
         <Providers>
-          <SiteHeader />
-          <FaucetPrompt />
-          <ChannelFrame>{children}</ChannelFrame>
-          <AnchorVideo />
+          {/* the tour spotlights the channel bar and the lower third, so it has
+              to sit outside both of them */}
+          <Onboarding>
+            <SiteHeader />
+            <FaucetPrompt />
+            <ChannelFrame>{children}</ChannelFrame>
+            <AnchorVideo />
+          </Onboarding>
         </Providers>
       </body>
     </html>
